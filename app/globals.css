@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f4f7f5;
+  --surface: #ffffff;
+  --ink: #11231d;
+  --muted: #4d675f;
+  --line: #d4e0db;
+  --accent: #0c7a5a;
+  --accent-strong: #075740;
+  --warning: #b44a2e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 90% 8%, #d8f2ea 0%, transparent 38%),
+    radial-gradient(circle at 5% 90%, #e6f0ff 0%, transparent 35%),
+    var(--bg);
+  font-family: 'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.container {
+  width: min(1120px, 92vw);
+  margin: 0 auto;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(16, 34, 28, 0.07);
+}
+
+.field {
+  width: 100%;
+  border: 1px solid #bcd0c8;
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--accent-strong);
+}
+
+.btn-secondary {
+  background: #edf3f0;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
