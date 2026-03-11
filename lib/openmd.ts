@@ -1,5 +1,7 @@
+import { type TenantRole, hasPermission } from './rbac'
+
+export type { TenantRole }
 export type OrgType = 'practice' | 'facility' | 'independent_doctor'
-export type TenantRole = 'admin' | 'scheduler' | 'billing' | 'provider'
 export type BookingStatus = 'requested' | 'accepted' | 'declined' | 'confirmed' | 'canceled'
 
 export const REVIEW_TAGS = [
@@ -10,12 +12,14 @@ export const REVIEW_TAGS = [
   'facility_cleanliness',
 ] as const
 
-export function roleCanRequestBookings(role: TenantRole) {
-  return role === 'admin' || role === 'scheduler'
+/** @deprecated Use hasPermission(role, 'create_booking') from lib/rbac instead. */
+export function roleCanRequestBookings(role: TenantRole | string) {
+  return hasPermission(role, 'create_booking')
 }
 
+/** @deprecated Use getRoleLabel from lib/rbac instead. */
 export function displayRole(role: string) {
-  return role.replace('_', ' ')
+  return role.replace(/_/g, ' ')
 }
 
 export function containsPotentialPhi(text: string) {
