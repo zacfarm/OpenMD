@@ -48,16 +48,20 @@ async function createMarketplacePost(formData: FormData) {
   revalidatePath('/bookings')
 }
 
-async function claimMarketplacePost(formData: FormData) {
-  'use server'
+async function claimMarketplacePost(formData: FormData) {  
+  'use server'  
+  const supabase = createSupabaseServerClient()  
+  const postId = String(formData.get('postId') || '')  
+  if (!postId) return  
+  const { error } = await supabase.rpc('claim_marketplace_post', { post_id: postId })  
+  if (error) {  
+    console.log('Claim error:', error.message)  
+    // Optionally return an error to client or notify  
+    return  
+  }  
+  revalidatePath('/bookings')  
+}  
 
-  const supabase = createSupabaseServerClient()
-  const postId = String(formData.get('postId') || '')
-  if (!postId) return
-
-  await supabase.rpc('claim_marketplace_post', { post_id: postId })
-  revalidatePath('/bookings')
-}
 
 async function closeMarketplacePost(formData: FormData) {
   'use server'
