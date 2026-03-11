@@ -386,7 +386,9 @@ begin
     raise exception 'Only admins can invite users';
   end if;
 
-  generated_token := encode(gen_random_bytes(12), 'hex');
+  generated_token :=
+    md5(random()::text || clock_timestamp()::text || auth.uid()::text || lower(trim(invite_email))) ||
+    md5(clock_timestamp()::text || random()::text || lower(trim(invite_email)));
 
   insert into public.tenant_invites (tenant_id, email, role, invite_token, invited_by)
   values (target_tenant, lower(trim(invite_email)), invite_role, generated_token, auth.uid());

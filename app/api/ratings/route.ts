@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-import { containsPotentialPhi, REVIEW_TAGS } from '@/lib/openmd'
+import { containsPotentialPhi } from '@/lib/openmd'
 import { createSupabaseServerClient } from '@/lib/supabaseServer'
 
 export async function POST(req: Request) {
@@ -8,10 +8,7 @@ export async function POST(req: Request) {
   const form = await req.formData()
   const entityId = String(form.get('entityId') || '')
   const starRating = Number(form.get('starRating'))
-  const tags = form
-    .getAll('tags')
-    .map((value) => String(value))
-    .filter((tag) => REVIEW_TAGS.includes(tag as (typeof REVIEW_TAGS)[number]))
+  const selectedTags = form.getAll('tags').map((value) => String(value))
   const commentRaw = String(form.get('comment') || '').trim()
 
   if (!entityId || !Number.isInteger(starRating) || starRating < 1 || starRating > 5) {
@@ -33,6 +30,15 @@ export async function POST(req: Request) {
     return NextResponse.redirect(new URL('/', req.url))
   }
 
+  const { data: tagOptions } = await supabase
+    .from('review_tag_options')
+    .select('slug')
+    .eq('entity_type', entity.entity_type)
+    .eq('is_active', true)
+
+  const validTags = new Set((tagOptions ?? []).map((tag) => tag.slug))
+  const tags = selectedTags.filter((tag) => validTags.has(tag))
+
   await supabase.from('directory_reviews').insert({
     entity_id: entityId,
     star_rating: starRating,
@@ -40,5 +46,5 @@ export async function POST(req: Request) {
     comment: commentRaw || null,
   })
 
-  return NextResponse.redirect(new URL(`/directory/${entity.entity_type}/${entity.slug}`, req.url))
+  return NextResponse.redirect(new URL(`/directory/${entity.entity_type}/${entity.slug}#reviews`, req.url))
 }
