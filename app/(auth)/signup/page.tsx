@@ -86,7 +86,7 @@ export default function SignupPage() {
     <>
       <h1 style={{ marginTop: 0, fontSize: 30 }}>Create OpenMD workspace</h1>
       <p style={{ color: 'var(--muted)' }}>
-        Supports practice, facility, or independent doctor tenants with role-based access.
+        Supports practice or facility tenants with role-based access. Independent providers should register as a practice.
       </p>
 
       <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12, marginTop: 14 }}>
@@ -115,7 +115,6 @@ export default function SignupPage() {
           <select className="field" name="orgType" defaultValue="practice" required>
             <option value="practice">Practice</option>
             <option value="facility">Facility</option>
-            <option value="independent_doctor">Independent doctor</option>
           </select>
         </label>
 

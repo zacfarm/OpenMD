@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
+import { getGlobalAdminAccess } from '@/lib/openmdAdmin'
 import { createSupabaseServerClient } from '@/lib/supabaseServer'
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -21,6 +22,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   const active = memberships?.[0]
   const activeTenant = Array.isArray(active?.tenants) ? active.tenants[0] : active?.tenants
+  const adminAccess = await getGlobalAdminAccess()
 
   return (
     <div>
@@ -34,6 +36,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
           <Link href="/providers">Providers</Link>
           <Link href="/notifications">Notifications</Link>
           <Link href="/settings/team">Team</Link>
+          {(adminAccess.isGlobalAdmin || adminAccess.needsBootstrap) && <Link href="/admin">Admin</Link>}
           <span style={{ marginLeft: 'auto', color: 'var(--muted)', fontSize: 13 }}>
             {activeTenant?.name ?? 'No workspace'} ({active?.role ?? 'n/a'})
           </span>
