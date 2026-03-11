@@ -91,6 +91,101 @@ export default async function DashboardPage() {
     insurance_payers: { payer_name: string } | { payer_name: string }[] | null
   }>
 
+  let utilizationRate = 0
+  let utilizedProvidersCount = 0
+  let totalCost = 0
+  let pendingClaimsCost = 0
+  let avgClaimCost = 0
+  let onboardingRows: Array<{
+    providerId: string
+    name: string
+    createdAt: string
+    completed: number
+    total: number
+    items: Array<{ label: string; done: boolean }>
+  }> = []
+
+  if (role === 'facility_manager' && activeMembership) {
+    const { data: tenantProviders } = await supabase
+      .from('provider_profiles')
+      .select('id,user_id,display_name,specialty,created_at')
+      .eq('practice_tenant_id', activeMembership.tenant_id)
+
+    const providerIds = (tenantProviders ?? []).map((p) => p.id)
+
+    if (providerIds.length > 0) {
+      const [availabilityRes, credentialsRes, bookingsRes, claimsRes] = await Promise.all([
+        supabase
+          .from('provider_availability')
+          .select('provider_id')
+          .in('provider_id', providerIds),
+        supabase
+          .from('provider_credentials')
+          .select('provider_id,status')
+          .eq('tenant_id', activeMembership.tenant_id)
+          .in('provider_id', providerIds),
+        supabase
+          .from('booking_requests')
+          .select('provider_id,status')
+          .eq('requesting_tenant_id', activeMembership.tenant_id)
+          .in('provider_id', providerIds),
+        supabase
+          .from('insurance_claims')
+          .select('billed_amount,status')
+          .eq('tenant_id', activeMembership.tenant_id),
+      ])
+
+      const availabilitySet = new Set((availabilityRes.data ?? []).map((r) => r.provider_id))
+      const providerCredentialRows = (credentialsRes.data ?? [])
+      const providerBookingRows = (bookingsRes.data ?? [])
+      const claimCostRows = claimsRes.data ?? []
+
+      const utilizedProviderSet = new Set(
+        providerBookingRows
+          .filter((r) => r.status === 'accepted' || r.status === 'confirmed')
+          .map((r) => r.provider_id),
+      )
+
+      utilizedProvidersCount = utilizedProviderSet.size
+      utilizationRate = providerIds.length > 0 ? Math.round((utilizedProvidersCount / providerIds.length) * 100) : 0
+
+      totalCost = claimCostRows.reduce((sum, row) => sum + Number(row.billed_amount ?? 0), 0)
+      pendingClaimsCost = claimCostRows
+        .filter((row) => row.status === 'submitted')
+        .reduce((sum, row) => sum + Number(row.billed_amount ?? 0), 0)
+      avgClaimCost = claimCostRows.length > 0 ? totalCost / claimCostRows.length : 0
+
+      const sixtyDaysAgo = new Date()
+      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
+
+      onboardingRows = (tenantProviders ?? [])
+        .filter((p) => new Date(p.created_at) >= sixtyDaysAgo)
+        .map((provider) => {
+          const creds = providerCredentialRows.filter((c) => c.provider_id === provider.id)
+          const providerBookings = providerBookingRows.filter((b) => b.provider_id === provider.id)
+
+          const items = [
+            { label: 'Provider profile completed', done: Boolean(provider.display_name && provider.specialty) },
+            { label: 'At least 1 credential uploaded', done: creds.length > 0 },
+            { label: 'At least 1 credential approved', done: creds.some((c) => c.status === 'approved') },
+            { label: 'Availability added', done: availabilitySet.has(provider.id) },
+            { label: 'Booking activity started', done: providerBookings.length > 0 },
+          ]
+
+          const completed = items.filter((item) => item.done).length
+          return {
+            providerId: provider.id,
+            name: provider.display_name,
+            createdAt: provider.created_at,
+            completed,
+            total: items.length,
+            items,
+          }
+        })
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    }
+  }
+
   return (
     <section style={{ display: 'grid', gap: 14 }}>
       <article className="card" style={{ padding: 20 }}>
@@ -185,6 +280,77 @@ export default async function DashboardPage() {
             </article>
           </div>
         </article>
+      )}
+
+      {role === 'facility_manager' && (
+        <>
+          <article className="card" style={{ padding: 18 }}>
+            <h2 style={{ marginTop: 0 }}>Staff utilization and cost dashboard</h2>
+            <p style={{ color: 'var(--muted)' }}>
+              Snapshot of provider engagement and billing spend for your facility.
+            </p>
+            <p style={{ marginTop: 0 }}>
+              <a href="/dashboard/facility">Open full analytics dashboard</a>
+            </p>
+
+            <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+              <article className="card" style={{ padding: 14 }}>
+                <h3 style={{ margin: 0, fontSize: 16 }}>Provider utilization</h3>
+                <p style={{ margin: '8px 0 0', fontSize: 26 }}>{utilizationRate}%</p>
+                <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 13 }}>
+                  {utilizedProvidersCount} of {providerCount ?? 0} providers with accepted/confirmed bookings
+                </p>
+              </article>
+
+              <article className="card" style={{ padding: 14 }}>
+                <h3 style={{ margin: 0, fontSize: 16 }}>Total claim cost</h3>
+                <p style={{ margin: '8px 0 0', fontSize: 26 }}>${totalCost.toFixed(2)}</p>
+                <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 13 }}>
+                  Avg claim: ${avgClaimCost.toFixed(2)}
+                </p>
+              </article>
+
+              <article className="card" style={{ padding: 14 }}>
+                <h3 style={{ margin: 0, fontSize: 16 }}>Pending claims value</h3>
+                <p style={{ margin: '8px 0 0', fontSize: 26 }}>${pendingClaimsCost.toFixed(2)}</p>
+                <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 13 }}>
+                  Submitted claims awaiting downstream processing
+                </p>
+              </article>
+            </div>
+          </article>
+
+          <article className="card" style={{ padding: 18 }}>
+            <h2 style={{ marginTop: 0 }}>New provider onboarding checklist</h2>
+            <p style={{ color: 'var(--muted)' }}>
+              Tracks providers created in the last 60 days and their onboarding progress.
+            </p>
+
+            {onboardingRows.length === 0 ? (
+              <p style={{ margin: 0, color: 'var(--muted)' }}>No newly added providers in the last 60 days.</p>
+            ) : (
+              <div style={{ display: 'grid', gap: 10 }}>
+                {onboardingRows.map((row) => (
+                  <div key={row.providerId} style={{ borderTop: '1px solid var(--line)', paddingTop: 10 }}>
+                    <p style={{ margin: 0, fontWeight: 700 }}>
+                      {row.name} <span style={{ color: 'var(--muted)', fontWeight: 400 }}>({row.completed}/{row.total})</span>
+                    </p>
+                    <p style={{ margin: '4px 0 8px', color: 'var(--muted)', fontSize: 13 }}>
+                      Added {new Date(row.createdAt).toLocaleDateString()}
+                    </p>
+                    <div style={{ display: 'grid', gap: 4 }}>
+                      {row.items.map((item) => (
+                        <p key={item.label} style={{ margin: 0, fontSize: 13, color: item.done ? 'var(--accent)' : 'var(--muted)' }}>
+                          {item.done ? '✓' : '○'} {item.label}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </article>
+        </>
       )}
     </section>
   )
