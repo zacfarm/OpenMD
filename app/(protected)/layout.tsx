@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { createSupabaseServerClient } from '@/lib/supabaseServer'
+import { hasPermission, getRoleLabel, normalizeTenantRole } from '@/lib/rbac'
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const supabase = createSupabaseServerClient()
@@ -21,6 +22,8 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   const active = memberships?.[0]
   const activeTenant = Array.isArray(active?.tenants) ? active.tenants[0] : active?.tenants
+  const role = active?.role ?? null
+  const normalizedRole = normalizeTenantRole(role)
 
   return (
     <div>
@@ -30,12 +33,23 @@ export default async function ProtectedLayout({ children }: { children: React.Re
             OpenMD
           </Link>
           <Link href="/dashboard">Dashboard</Link>
-          <Link href="/bookings">Bookings</Link>
-          <Link href="/providers">Providers</Link>
-          <Link href="/notifications">Notifications</Link>
-          <Link href="/settings/team">Team</Link>
+          {hasPermission(role, 'view_bookings') && normalizedRole !== 'billing' && (
+            <Link href="/bookings">Bookings</Link>
+          )}
+          {hasPermission(role, 'view_providers') && normalizedRole !== 'billing' && (
+            <Link href="/providers">Providers</Link>
+          )}
+          {hasPermission(role, 'view_billing') && (
+            <Link href="/billing">Billing</Link>
+          )}
+          {hasPermission(role, 'view_notifications') && (
+            <Link href="/notifications">Notifications</Link>
+          )}
+          {hasPermission(role, 'manage_team') && (
+            <Link href="/settings/team">Team</Link>
+          )}
           <span style={{ marginLeft: 'auto', color: 'var(--muted)', fontSize: 13 }}>
-            {activeTenant?.name ?? 'No workspace'} ({active?.role ?? 'n/a'})
+            {activeTenant?.name ?? 'No workspace'} ({getRoleLabel(role)})
           </span>
           <form action="/logout" method="post">
             <button className="btn btn-secondary" type="submit">

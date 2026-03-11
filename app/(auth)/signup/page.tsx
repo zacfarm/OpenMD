@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 
 import { createSupabaseBrowserClient } from '@/lib/supabaseClient'
@@ -10,6 +10,9 @@ import type { OrgType } from '@/lib/openmd'
 export default function SignupPage() {
   const supabase = createSupabaseBrowserClient()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const inviteTokenFromQuery = searchParams.get('inviteToken')?.trim() ?? ''
+  const isInviteSignup = Boolean(inviteTokenFromQuery)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,7 +27,7 @@ export default function SignupPage() {
     const password = String(data.get('password') || '')
     const orgName = String(data.get('orgName') || '').trim()
     const orgType = String(data.get('orgType') || '') as OrgType
-    const inviteToken = String(data.get('inviteToken') || '').trim()
+    const inviteToken = String(data.get('inviteToken') || inviteTokenFromQuery).trim()
 
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
@@ -49,6 +52,14 @@ export default function SignupPage() {
     }
 
     if (inviteToken) {
+      if (!signUpData.session) {
+        setBusy(false)
+        setError(
+          'Account created. Confirm your email, then sign in and open the same invite link again to complete team join.',
+        )
+        return
+      }
+
       const { error: inviteError } = await supabase.rpc('accept_tenant_invite', {
         invite_token_input: inviteToken,
       })
@@ -85,9 +96,15 @@ export default function SignupPage() {
   return (
     <>
       <h1 style={{ marginTop: 0, fontSize: 30 }}>Create OpenMD workspace</h1>
-      <p style={{ color: 'var(--muted)' }}>
-        Supports practice, facility, or independent doctor tenants with role-based access.
-      </p>
+      {isInviteSignup ? (
+        <p style={{ color: 'var(--muted)' }}>
+          You are joining an existing OpenMD team. Create your account to activate your profile.
+        </p>
+      ) : (
+        <p style={{ color: 'var(--muted)' }}>
+          Supports practice, facility, or independent doctor tenants with role-based access.
+        </p>
+      )}
 
       <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12, marginTop: 14 }}>
         <label>
@@ -105,23 +122,27 @@ export default function SignupPage() {
           <input className="field" name="password" type="password" autoComplete="new-password" required minLength={8} />
         </label>
 
-        <label>
-          Organization name
-          <input className="field" name="orgName" placeholder="Riverside Medical Group" />
-        </label>
+        {!isInviteSignup && (
+          <>
+            <label>
+              Organization name
+              <input className="field" name="orgName" placeholder="Riverside Medical Group" />
+            </label>
 
-        <label>
-          Organization type
-          <select className="field" name="orgType" defaultValue="practice" required>
-            <option value="practice">Practice</option>
-            <option value="facility">Facility</option>
-            <option value="independent_doctor">Independent doctor</option>
-          </select>
-        </label>
+            <label>
+              Organization type
+              <select className="field" name="orgType" defaultValue="practice" required>
+                <option value="practice">Practice</option>
+                <option value="facility">Facility</option>
+                <option value="independent_doctor">Independent doctor</option>
+              </select>
+            </label>
+          </>
+        )}
 
         <label>
           Invite token (optional, use this to join an existing tenant)
-          <input className="field" name="inviteToken" />
+          <input className="field" name="inviteToken" defaultValue={inviteTokenFromQuery} readOnly={isInviteSignup} />
         </label>
 
         {error && <p style={{ color: 'var(--warning)', margin: 0 }}>{error}</p>}
