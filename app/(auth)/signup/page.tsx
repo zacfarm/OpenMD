@@ -94,67 +94,78 @@ export default function SignupPage() {
   }
 
   return (
-    <>
-      <h1 style={{ marginTop: 0, fontSize: 30 }}>Create OpenMD workspace</h1>
-      {isInviteSignup ? (
-        <p style={{ color: 'var(--muted)' }}>
-          You are joining an existing OpenMD team. Create your account to activate your profile.
-        </p>
-      ) : (
-        <p style={{ color: 'var(--muted)' }}>
-          Supports practice, facility, or independent doctor tenants with role-based access.
-        </p>
-      )}
+    <div className="auth-form-wrap">
+      <header className="auth-heading">
+        <p className="auth-kicker">OpenMD Onboarding</p>
+        <h1>Create OpenMD workspace</h1>
+        {isInviteSignup ? (
+          <p>You are joining an existing OpenMD team. Create your account to activate your profile.</p>
+        ) : (
+          <p>Set up a practice, facility, or independent doctor tenant with role-based access controls.</p>
+        )}
+      </header>
 
-      <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12, marginTop: 14 }}>
-        <label>
+      <form onSubmit={onSubmit} className="auth-form">
+        <label className="auth-label">
           Full name
-          <input className="field" name="fullName" required />
+          <input className="field auth-input" name="fullName" required />
         </label>
 
-        <label>
+        <label className="auth-label">
           Email
-          <input className="field" name="email" type="email" autoComplete="email" required />
+          <input className="field auth-input" name="email" type="email" autoComplete="email" required />
         </label>
 
-        <label>
+        <label className="auth-label">
           Password
-          <input className="field" name="password" type="password" autoComplete="new-password" required minLength={8} />
+          <input
+            className="field auth-input"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            required
+            minLength={8}
+          />
         </label>
 
         {!isInviteSignup && (
-          <>
-            <label>
+          <div className="auth-split">
+            <label className="auth-label">
               Organization name
-              <input className="field" name="orgName" placeholder="Riverside Medical Group" />
+              <input className="field auth-input" name="orgName" placeholder="Riverside Medical Group" />
             </label>
 
-            <label>
+            <label className="auth-label">
               Organization type
-              <select className="field" name="orgType" defaultValue="practice" required>
+              <select className="field auth-input" name="orgType" defaultValue="practice" required>
                 <option value="practice">Practice</option>
                 <option value="facility">Facility</option>
                 <option value="independent_doctor">Independent doctor</option>
               </select>
             </label>
-          </>
+          </div>
         )}
 
-        <label>
+        <label className="auth-label">
           Invite token (optional, use this to join an existing tenant)
-          <input className="field" name="inviteToken" defaultValue={inviteTokenFromQuery} readOnly={isInviteSignup} />
+          <input
+            className="field auth-input"
+            name="inviteToken"
+            defaultValue={inviteTokenFromQuery}
+            readOnly={isInviteSignup}
+          />
         </label>
 
-        {error && <p style={{ color: 'var(--warning)', margin: 0 }}>{error}</p>}
+        {error && <p className="auth-error">{error}</p>}
 
-        <button className="btn btn-primary" disabled={busy} type="submit">
+        <button className="btn btn-primary auth-submit" disabled={busy} type="submit">
           {busy ? 'Creating...' : 'Create account'}
         </button>
       </form>
 
-      <p style={{ marginBottom: 0 }}>
+      <p className="auth-switch">
         Already have an account? <Link href="/login">Sign in</Link>
       </p>
-    </>
+    </div>
   )
 }

@@ -87,7 +87,6 @@ export const ROLE_PERMISSIONS: Record<TenantRole, readonly Permission[]> = {
     'manage_bookings',
     'view_providers',
     'manage_providers',
-    'view_billing',
     'view_credentials',
     'manage_credentials',
     'view_notifications',
@@ -114,8 +113,6 @@ export const ROLE_PERMISSIONS: Record<TenantRole, readonly Permission[]> = {
     'manage_bookings',
     'view_providers',
     'manage_providers',
-    'view_credentials',
-    'manage_credentials',
     'view_notifications',
     'view_marketplace',
     'create_marketplace_post',
@@ -156,3 +153,6 @@ export function getRoleLabel(role: string | null | undefined): string {
   if (!normalized) return role ?? 'Unknown'
   return ROLE_LABELS[normalized]
 }
+
+
+

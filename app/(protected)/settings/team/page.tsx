@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 
 import { createSupabaseServerClient } from '@/lib/supabaseServer'
 import { hasPermission, INVITABLE_TEAM_ROLES, getRoleLabel } from '@/lib/rbac'
+import { SendInviteEmailButton } from '@/app/(protected)/settings/components/SendInviteEmailButton'
 
 function toLegacyTenantRole(role: string) {
   if (role === 'doctor') return 'provider'
@@ -127,6 +128,8 @@ export default async function TeamSettingsPage({
     email: string
     role: string
     invite_token: string
+    status: string
+    expires_at: string
   }>
   const membershipTenant = Array.isArray(membership?.tenants) ? membership?.tenants[0] : membership?.tenants
   const appBaseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
@@ -214,25 +217,46 @@ export default async function TeamSettingsPage({
       <article className="card" style={{ padding: 18 }}>
         <h2 style={{ marginTop: 0 }}>Active invites</h2>
         <p style={{ color: 'var(--muted)', marginTop: 0 }}>
-          Send each teammate their unique signup link below.
+          Invitations waiting to be accepted. Click "Send email" to notify the recipient.
         </p>
         <div style={{ display: 'grid', gap: 8 }}>
           {invites.map((invite) => {
             const inviteUrl = `${appBaseUrl}/signup?inviteToken=${encodeURIComponent(invite.invite_token)}`
-            const subject = encodeURIComponent(`OpenMD invite: ${getRoleLabel(invite.role)}`)
-            const body = encodeURIComponent(
-              `You were invited to join OpenMD as ${getRoleLabel(invite.role)}.\n\nUse this link to create your profile:\n${inviteUrl}`,
-            )
+            const isAccepted = invite.status === 'accepted'
+            const isExpired = new Date(invite.expires_at) < new Date()
 
             return (
               <div key={invite.id} style={{ margin: 0, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
-                <p style={{ margin: 0 }}>
-                  {invite.email} ({getRoleLabel(invite.role)})
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: 0 }}>
+                      {invite.email} ({getRoleLabel(invite.role)})
+                      {isAccepted && (
+                        <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--accent)', fontWeight: 700 }}>
+                          ✓ Accepted
+                        </span>
+                      )}
+                      {isExpired && (
+                        <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--warning)', fontWeight: 700 }}>
+                          ✗ Expired
+                        </span>
+                      )}
+                    </p>
+                    <p style={{ margin: '4px 0', fontSize: 12, color: 'var(--muted)' }}>
+                      Status: {invite.status}
+                    </p>
+                  </div>
+                  <SendInviteEmailButton
+                    email={invite.email}
+                    token={invite.invite_token}
+                    role={getRoleLabel(invite.role)}
+                    tenantName={membershipTenant?.name ?? 'OpenMD'}
+                    disabled={isAccepted || isExpired}
+                  />
+                </div>
+                <p style={{ margin: '4px 0 0', fontSize: 12, wordBreak: 'break-all', color: 'var(--muted)' }}>
+                  {inviteUrl}
                 </p>
-                <p style={{ margin: '4px 0', fontSize: 13, wordBreak: 'break-all' }}>{inviteUrl}</p>
-                <a href={`mailto:${invite.email}?subject=${subject}&body=${body}`} style={{ fontSize: 13 }}>
-                  Send invite email
-                </a>
               </div>
             )
           })}
