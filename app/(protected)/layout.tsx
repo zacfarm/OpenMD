@@ -45,7 +45,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
           {hasPermission(role, 'view_notifications') && (
             <Link href="/notifications">Notifications</Link>
           )}
-          {hasPermission(role, 'view_credentials') && (
+          {hasPermission(role, 'view_credentials') && normalizedRole !== 'credentialing' && (
             <Link href="/credentials">Credentials</Link>
           )}
           {hasPermission(role, 'manage_team') && (

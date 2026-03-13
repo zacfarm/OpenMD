@@ -113,8 +113,6 @@ export const ROLE_PERMISSIONS: Record<TenantRole, readonly Permission[]> = {
     'manage_bookings',
     'view_providers',
     'manage_providers',
-    'view_credentials',
-    'manage_credentials',
     'view_notifications',
     'view_marketplace',
     'create_marketplace_post',

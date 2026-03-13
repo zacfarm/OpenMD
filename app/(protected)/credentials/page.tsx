@@ -27,7 +27,7 @@ export default async function CredentialsPage() {
   const role = normalizeTenantRole(membership?.role)
   const tenantId = membership!.tenant_id
 
-  const isReviewer = role === 'admin' || role === 'facility_manager' || role === 'credentialing'
+  const isReviewer = role === 'admin' || role === 'facility_manager'
 
   // Fetch the provider profile for the current user (may be null for admin-only roles)
   const { data: providerProfile } = await supabase
@@ -53,7 +53,7 @@ export default async function CredentialsPage() {
     )
   }
 
-  // ── Reviewer view: all providers in tenant ───────────────────────────────────
+  // ── Reviewer view: all providers in tenant (facility-side admin roles only) ──
   if (isReviewer) {
     const { data: allCredentials } = await supabase
       .from('provider_credentials')
@@ -92,13 +92,10 @@ export default async function CredentialsPage() {
     )
   }
 
-  // Doctor without a provider profile yet
-  return (
-    <section className="card" style={{ padding: 18 }}>
-      <h1 style={{ marginTop: 0 }}>Credentials</h1>
-      <p style={{ color: 'var(--muted)' }}>
-        You do not have a provider profile yet. Ask your administrator to set one up.
-      </p>
-    </section>
-  )
+  // Non-provider, non-review roles cannot access credentials workspace
+  if (!providerProfile) {
+    redirect('/dashboard')
+  }
+
+  redirect('/dashboard')
 }
