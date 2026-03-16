@@ -7,7 +7,7 @@ import { getRoleLabel, hasPermission } from '@/lib/rbac'
 async function submitClaim(formData: FormData) {
   'use server'
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -40,6 +40,18 @@ async function submitClaim(formData: FormData) {
     redirect('/billing?error=Complete all claim fields before submitting.')
   }
 
+  // Guard against tampered form payloads: payer must exist and be active.
+  const { data: payerRecord } = await supabase
+    .from('insurance_payers')
+    .select('id')
+    .eq('id', payerId)
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (!payerRecord) {
+    redirect('/billing?error=Selected payer is invalid or inactive. Choose a configured payer.')
+  }
+
   const { error } = await supabase.from('insurance_claims').insert({
     tenant_id: membership.tenant_id,
     payer_id: payerId,
@@ -67,7 +79,7 @@ export default async function BillingPage({
 }: {
   searchParams?: { error?: string; success?: string }
 }) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

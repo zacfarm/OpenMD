@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabaseServer'
 async function markRead(formData: FormData) {
   'use server'
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const notificationId = String(formData.get('notificationId') || '')
 
   if (!notificationId) return
@@ -15,7 +15,7 @@ async function markRead(formData: FormData) {
 }
 
 export default async function NotificationsPage() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: notifications } = await supabase
     .from('notifications')
     .select('id,title,body,type,status,created_at,action_url')

@@ -11,7 +11,7 @@ export type ReviewTagOption = {
 }
 
 export async function getActiveReviewTags(entityType: DirectoryEntityType) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data } = await supabase
     .from('review_tag_options')
     .select('id,entity_type,slug,label,sort_order,is_active')

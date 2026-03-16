@@ -37,7 +37,7 @@ export default async function Home({
   const specialty = searchParams.specialty?.trim() ?? ''
   const location = searchParams.location?.trim() ?? ''
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
 
   let orgQuery = supabase
     .from('directory_entities')

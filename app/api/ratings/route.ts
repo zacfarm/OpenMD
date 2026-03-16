@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     return NextResponse.redirect(new URL(referer ?? '/', req.url))
   }
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: entity } = await supabase
     .from('directory_entities')
     .select('entity_type,slug')

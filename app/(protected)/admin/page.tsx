@@ -8,7 +8,7 @@ import { createSupabaseServerClient } from '@/lib/supabaseServer'
 async function claimGlobalAdmin() {
   'use server'
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const access = await getGlobalAdminAccess()
 
   if (!access.userId || !access.needsBootstrap) {
@@ -37,7 +37,7 @@ async function createTagOption(formData: FormData) {
     redirect('/admin')
   }
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: existing } = await supabase
     .from('review_tag_options')
     .select('sort_order')
@@ -71,7 +71,7 @@ async function updateTagStatus(formData: FormData) {
   const isActive = String(formData.get('isActive') || '') === 'true'
   if (!id) redirect('/admin')
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   await supabase.from('review_tag_options').update({ is_active: isActive }).eq('id', id)
 
   revalidatePath('/admin')
@@ -95,7 +95,7 @@ async function updateReportStatus(formData: FormData) {
     redirect('/admin')
   }
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -137,7 +137,7 @@ export default async function AdminPage() {
     )
   }
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const [{ data: tags }, { data: reports }] = await Promise.all([
     supabase
       .from('review_tag_options')

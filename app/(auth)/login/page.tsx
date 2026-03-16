@@ -34,30 +34,44 @@ export default function LoginPage() {
   }
 
   return (
-    <>
-      <h1 style={{ marginTop: 0, fontSize: 30 }}>Sign in to OpenMD</h1>
-      <p style={{ color: 'var(--muted)' }}>Manage tenant workflows, providers, bookings, and notifications.</p>
+    <div className="auth-form-wrap">
+      <header className="auth-heading">
+        <p className="auth-kicker">Welcome Back</p>
+        <h1>Sign in to OpenMD</h1>
+        <p>Manage tenant workflows, providers, bookings, and notifications in one place.</p>
+      </header>
 
-      <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12, marginTop: 14 }}>
-        <label>
+      <form onSubmit={onSubmit} className="auth-form">
+        <label className="auth-label">
           Email
-          <input name="email" type="email" className="field" required autoComplete="email" />
+          <input name="email" type="email" className="field auth-input" required autoComplete="email" />
         </label>
-        <label>
+
+        <label className="auth-label">
           Password
-          <input name="password" type="password" className="field" required autoComplete="current-password" />
+          <input
+            name="password"
+            type="password"
+            className="field auth-input"
+            required
+            autoComplete="current-password"
+          />
         </label>
 
-        {error && <p style={{ color: 'var(--warning)', margin: 0 }}>{error}</p>}
+        {error && <p className="auth-error">{error}</p>}
 
-        <button className="btn btn-primary" type="submit" disabled={busy}>
+        <Link href="/forgot-password" className="auth-inline-link">
+          Forgot password?
+        </Link>
+
+        <button className="btn btn-primary auth-submit" type="submit" disabled={busy}>
           {busy ? 'Signing in...' : 'Sign in'}
         </button>
       </form>
 
-      <p style={{ marginBottom: 0 }}>
+      <p className="auth-switch">
         Need an account? <Link href="/signup">Create tenant workspace</Link>
       </p>
-    </>
+    </div>
   )
 }

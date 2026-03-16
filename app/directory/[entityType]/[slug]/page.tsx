@@ -186,7 +186,7 @@ export default async function DirectoryProfilePage({
   params: { entityType: string; slug: string }
   searchParams: { providerSearch?: string; providerSort?: string; showAll?: string }
 }) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
 
   const { data: entity } = await supabase
     .from('directory_entities')

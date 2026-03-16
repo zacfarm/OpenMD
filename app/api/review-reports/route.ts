@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     return NextResponse.redirect(new URL(referer ?? '/', req.url))
   }
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

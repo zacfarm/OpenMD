@@ -6,7 +6,7 @@ import { hasPermission } from '@/lib/rbac'
 async function createMarketplacePost(formData: FormData) {
   'use server'
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -54,7 +54,7 @@ async function createMarketplacePost(formData: FormData) {
 async function claimMarketplacePost(formData: FormData) {  
   'use server'
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -80,7 +80,7 @@ async function claimMarketplacePost(formData: FormData) {
 async function closeMarketplacePost(formData: FormData) {
   'use server'
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -109,7 +109,7 @@ async function closeMarketplacePost(formData: FormData) {
 }
 
 export default async function BookingsPage() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

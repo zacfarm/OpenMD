@@ -6,7 +6,7 @@ import { createSupabaseServerClient } from '@/lib/supabaseServer'
 import { hasPermission, getRoleLabel, normalizeTenantRole } from '@/lib/rbac'
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -46,6 +46,9 @@ export default async function ProtectedLayout({ children }: { children: React.Re
           )}
           {hasPermission(role, 'view_notifications') && (
             <Link href="/notifications">Notifications</Link>
+          )}
+          {hasPermission(role, 'view_credentials') && normalizedRole !== 'credentialing' && (
+            <Link href="/credentials">Credentials</Link>
           )}
           {hasPermission(role, 'manage_team') && (
             <Link href="/settings/team">Team</Link>

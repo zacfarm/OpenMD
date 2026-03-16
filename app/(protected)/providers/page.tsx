@@ -4,7 +4,7 @@ import { hasPermission } from '@/lib/rbac'
 async function addProvider(formData: FormData) {
   'use server'
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -39,7 +39,7 @@ async function addProvider(formData: FormData) {
 async function addAvailability(formData: FormData) {
   'use server'
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const providerId = String(formData.get('providerId') || '')
 
   if (!providerId) return
@@ -69,7 +69,7 @@ async function addAvailability(formData: FormData) {
 async function addTimeOff(formData: FormData) {
   'use server'
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const providerId = String(formData.get('providerId') || '')
 
   if (!providerId) return
@@ -96,7 +96,7 @@ async function addTimeOff(formData: FormData) {
 }
 
 export default async function ProvidersPage() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
