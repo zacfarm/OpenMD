@@ -30,12 +30,13 @@ type ProviderCard = {
 export default async function Home({
   searchParams,
 }: {
-  searchParams: { q?: string; type?: string; specialty?: string; location?: string }
+  searchParams: Promise<{ q?: string; type?: string; specialty?: string; location?: string }>
 }) {
-  const q = searchParams.q?.trim() ?? ''
-  const type = searchParams.type?.trim() ?? ''
-  const specialty = searchParams.specialty?.trim() ?? ''
-  const location = searchParams.location?.trim() ?? ''
+  const resolvedSearchParams = await searchParams
+  const q = resolvedSearchParams.q?.trim() ?? ''
+  const type = resolvedSearchParams.type?.trim() ?? ''
+  const specialty = resolvedSearchParams.specialty?.trim() ?? ''
+  const location = resolvedSearchParams.location?.trim() ?? ''
 
   const supabase = await createSupabaseServerClient()
 

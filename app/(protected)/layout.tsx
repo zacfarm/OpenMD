@@ -38,6 +38,9 @@ export default async function ProtectedLayout({ children }: { children: React.Re
           {hasPermission(role, 'view_bookings') && normalizedRole !== 'billing' && (
             <Link href="/bookings">Bookings</Link>
           )}
+          {hasPermission(role, 'view_bookings') && (
+            <Link href="/calendar">Calendar</Link>
+          )}
           {hasPermission(role, 'view_providers') && normalizedRole !== 'billing' && (
             <Link href="/providers">Providers</Link>
           )}

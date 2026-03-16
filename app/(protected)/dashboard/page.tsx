@@ -1,6 +1,27 @@
 import { createSupabaseServerClient } from '@/lib/supabaseServer'
 import { getRoleLabel, hasPermission, normalizeTenantRole } from '@/lib/rbac'
+import { getCalendarAccessContext, getCalendarBillingHref, getCalendarEvents } from '@/lib/calendar'
 import { revalidatePath } from 'next/cache'
+
+function getDashboardCaseRange(window: 'today' | 'month') {
+  const now = new Date()
+
+  if (window === 'month') {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1)
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+    return {
+      from: start.toISOString(),
+      to: end.toISOString(),
+    }
+  }
+
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+  return {
+    from: start.toISOString(),
+    to: end.toISOString(),
+  }
+}
 
 async function claimPostedShift(formData: FormData) {
   'use server'
@@ -24,12 +45,18 @@ async function claimPostedShift(formData: FormData) {
   const postId = String(formData.get('postId') || '')
   if (!postId) return
 
-  await supabase.rpc('claim_marketplace_post', { post_id: postId })
+  await supabase.rpc('claim_marketplace_post_text', { post_id_input: postId })
   revalidatePath('/dashboard')
   revalidatePath('/bookings')
+  revalidatePath('/calendar')
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ caseWindow?: string }>
+}) {
+  const resolvedSearchParams = await searchParams
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -45,6 +72,17 @@ export default async function DashboardPage() {
     ? activeMembership.tenants[0]
     : activeMembership?.tenants
   const role = normalizeTenantRole(activeMembership?.role)
+  const caseWindow = resolvedSearchParams?.caseWindow === 'month' ? 'month' : 'today'
+
+  const calendarAccess = await getCalendarAccessContext(supabase)
+  const pendingCases =
+    calendarAccess && hasPermission(calendarAccess.role, 'view_bookings')
+      ? await getCalendarEvents(supabase, calendarAccess, {
+          ...getDashboardCaseRange(caseWindow),
+        }).then((events) =>
+          events.filter((event) => event.status === 'scheduled' || event.status === 'confirmed' || event.status === 'in_progress'),
+        )
+      : []
 
   const [{ count: providerCount }, { count: bookingCount }, { count: unreadCount }, { count: claimsCount }] = await Promise.all([
     supabase.from('provider_profiles').select('id', { count: 'exact', head: true }),
@@ -208,6 +246,95 @@ export default async function DashboardPage() {
           </article>
         </div>
       </article>
+
+      {hasPermission(role, 'view_bookings') && role !== 'billing' && (
+        <article className="card" style={{ padding: 18 }}>
+          <div className="section-head">
+            <div>
+              <h2 style={{ margin: 0 }}>Open Case Queue</h2>
+              <p className="section-subtitle">
+                {role === 'doctor'
+                  ? 'Your active cases for the selected window.'
+                  : 'Active cases across providers in your current practice or facility.'}
+              </p>
+            </div>
+
+            <div className="dashboard-case-window">
+              <a className={`btn ${caseWindow === 'today' ? 'btn-primary' : 'btn-secondary'}`} href="/dashboard?caseWindow=today">
+                Today
+              </a>
+              <a className={`btn ${caseWindow === 'month' ? 'btn-primary' : 'btn-secondary'}`} href="/dashboard?caseWindow=month">
+                This Month
+              </a>
+            </div>
+          </div>
+
+          <div className="dashboard-case-table">
+            <div className="dashboard-case-head">
+              <span>Case</span>
+              <span>Status</span>
+              <span>Provider</span>
+              <span>When</span>
+              <span>Location</span>
+              <span>Actions</span>
+            </div>
+
+            {pendingCases.length === 0 ? (
+              <div className="dashboard-case-empty">
+                No open cases in the {caseWindow === 'month' ? 'current month' : 'current day'}.
+              </div>
+            ) : (
+              pendingCases.map((event) => (
+                <article className="dashboard-case-row" key={`${event.source}-${event.id}`}>
+                  <div className="dashboard-case-primary">
+                    <strong>{event.patientDisplayName || event.title}</strong>
+                    <span>
+                      {event.caseIdentifier ? `Case ${event.caseIdentifier}` : event.caseType || 'Open case'}
+                    </span>
+                    {(event.practiceName || event.facilityName) && (
+                      <span>{event.practiceName || event.facilityName}</span>
+                    )}
+                    {event.notes && <p>{event.notes}</p>}
+                  </div>
+
+                  <div>
+                    <span className={`dashboard-case-status dashboard-case-status-${event.status.replace(/_/g, '-')}`}>
+                      {event.status.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+
+                  <div className="dashboard-case-meta">
+                    <strong>{event.provider?.name ?? 'Unassigned'}</strong>
+                    {event.provider?.specialty && <span>{event.provider.specialty}</span>}
+                  </div>
+
+                  <div className="dashboard-case-meta">
+                    <strong>{new Date(event.start).toLocaleDateString()}</strong>
+                    <span>
+                      {new Date(event.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} -{' '}
+                      {new Date(event.end).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                    </span>
+                  </div>
+
+                  <div className="dashboard-case-meta">
+                    <strong>{event.location || 'No location'}</strong>
+                    <span>{event.caseType || 'Case'}</span>
+                  </div>
+
+                  <div className="dashboard-case-actions">
+                    <a className="btn btn-secondary" href="/calendar">
+                      Open Calendar
+                    </a>
+                    <a className="btn btn-secondary" href={getCalendarBillingHref(event)}>
+                      Billing
+                    </a>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+        </article>
+      )}
 
       {role === 'doctor' && (
         <article className="card" style={{ padding: 18 }}>

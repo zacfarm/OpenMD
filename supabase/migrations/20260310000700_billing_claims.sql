@@ -48,7 +48,7 @@ create policy "insurance_payers_select_authenticated" on public.insurance_payers
 
 create policy "insurance_claims_select_billing_roles" on public.insurance_claims
   for select to authenticated using (
-    public.current_tenant_role(tenant_id) in ('admin', 'billing', 'facility_manager', 'credentialing', 'scheduler')
+    public.current_tenant_role(tenant_id) in ('admin', 'billing', 'facility_manager', 'credentialing')
   );
 
 create policy "insurance_claims_insert_billing_roles" on public.insurance_claims

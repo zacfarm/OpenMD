@@ -77,8 +77,9 @@ async function submitClaim(formData: FormData) {
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams?: { error?: string; success?: string }
+  searchParams?: Promise<{ error?: string; success?: string; eventId?: string; claimId?: string }>
 }) {
+  const resolvedSearchParams = await searchParams
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -111,6 +112,29 @@ export default async function BillingPage({
       : Promise.resolve({ data: [] as never[] }),
   ])
 
+  const activeEvent =
+    resolvedSearchParams?.eventId && membership
+      ? await supabase
+          .from('schedule_events')
+          .select('id,title,case_identifier,patient_display_name,starts_at,facility_name,practice_name,provider_profiles(display_name)')
+          .eq('id', resolvedSearchParams.eventId)
+          .eq('tenant_id', membership.tenant_id)
+          .maybeSingle()
+      : { data: null }
+
+  const activeEventData = activeEvent.data as
+    | {
+        id: string
+        title: string
+        case_identifier: string | null
+        patient_display_name: string | null
+        starts_at: string
+        facility_name: string | null
+        practice_name: string | null
+        provider_profiles: { display_name: string } | { display_name: string }[] | null
+      }
+    | null
+
   const payers = payersRes.data ?? []
   const membershipTenant = Array.isArray(membership?.tenants) ? membership?.tenants[0] : membership?.tenants
   const claims = (claimsRes.data ?? []) as Array<{
@@ -138,8 +162,24 @@ export default async function BillingPage({
           Your role: {getRoleLabel(membership?.role)}
         </p>
 
-        {searchParams?.error && <p style={{ color: 'var(--warning)', margin: '8px 0' }}>{searchParams.error}</p>}
-        {searchParams?.success && <p style={{ color: 'var(--ok)', margin: '8px 0' }}>{searchParams.success}</p>}
+        {activeEventData && (
+          <div className="calendar-billing-context">
+            <div>
+              <strong>Billing context:</strong> {activeEventData.patient_display_name || activeEventData.title}
+              {activeEventData.case_identifier && <> · {activeEventData.case_identifier}</>}
+            </div>
+            <div style={{ color: 'var(--muted)', fontSize: 14 }}>
+              {new Date(activeEventData.starts_at).toLocaleDateString()} ·{' '}
+              {Array.isArray(activeEventData.provider_profiles)
+                ? activeEventData.provider_profiles[0]?.display_name
+                : activeEventData.provider_profiles?.display_name}{' '}
+              · {activeEventData.practice_name || activeEventData.facility_name || membershipTenant?.name}
+            </div>
+          </div>
+        )}
+
+        {resolvedSearchParams?.error && <p style={{ color: 'var(--warning)', margin: '8px 0' }}>{resolvedSearchParams.error}</p>}
+        {resolvedSearchParams?.success && <p style={{ color: 'var(--ok)', margin: '8px 0' }}>{resolvedSearchParams.success}</p>}
 
         {hasPermission(membership?.role, 'manage_billing') ? (
           <form action={submitClaim} style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
@@ -158,7 +198,12 @@ export default async function BillingPage({
             </label>
             <label>
               Patient name
-              <input className="field" name="patientName" required />
+              <input
+                className="field"
+                name="patientName"
+                required
+                defaultValue={activeEventData?.patient_display_name ?? ''}
+              />
             </label>
             <label>
               Member ID
@@ -166,7 +211,13 @@ export default async function BillingPage({
             </label>
             <label>
               Service date
-              <input className="field" type="date" name="serviceDate" required />
+              <input
+                className="field"
+                type="date"
+                name="serviceDate"
+                required
+                defaultValue={activeEventData?.starts_at?.slice(0, 10) ?? ''}
+              />
             </label>
             <label>
               CPT code
@@ -200,13 +251,13 @@ export default async function BillingPage({
       <article className="card" style={{ padding: 18 }}>
         <h2 style={{ marginTop: 0 }}>Recent claims</h2>
         <div style={{ display: 'grid', gap: 10 }}>
-          {claims.length === 0 ? (
+                {claims.length === 0 ? (
             <p style={{ margin: 0, color: 'var(--muted)' }}>No claims submitted yet.</p>
           ) : (
             claims.map((claim) => {
               const payer = Array.isArray(claim.insurance_payers) ? claim.insurance_payers[0] : claim.insurance_payers
               return (
-                <div key={claim.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10 }}>
+                <div id={`claim-${claim.id}`} key={claim.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10 }}>
                   <p style={{ margin: 0, fontWeight: 700 }}>
                     {claim.patient_name} • {payer?.payer_name ?? 'Unknown payer'}
                   </p>
