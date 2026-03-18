@@ -354,6 +354,7 @@ export default async function DashboardPage({
             )}
           </article>
         </section>
+      )}
 
       {hasPermission(role, 'view_bookings') && role !== 'billing' && (
         <article className="card" style={{ padding: 18 }}>
