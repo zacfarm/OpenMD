@@ -29,7 +29,7 @@ function formatMoney(value: number) {
 }
 
 export default async function FacilityDashboardPage() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

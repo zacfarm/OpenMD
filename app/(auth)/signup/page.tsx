@@ -101,7 +101,7 @@ export default function SignupPage() {
         {isInviteSignup ? (
           <p>You are joining an existing OpenMD team. Create your account to activate your profile.</p>
         ) : (
-          <p>Set up a practice, facility, or independent doctor tenant with role-based access controls.</p>
+          <p>Set up a practice or facility tenant with role-based access controls. Independent providers should register as a practice.</p>
         )}
       </header>
 
@@ -140,7 +140,6 @@ export default function SignupPage() {
               <select className="field auth-input" name="orgType" defaultValue="practice" required>
                 <option value="practice">Practice</option>
                 <option value="facility">Facility</option>
-                <option value="independent_doctor">Independent doctor</option>
               </select>
             </label>
           </div>

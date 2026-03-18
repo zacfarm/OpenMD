@@ -7,12 +7,11 @@ import { NotificationsClient } from './NotificationsClient'
 import { PushSubscribeButton } from './PushSubscribeButton'
 
 export default async function NotificationsPage() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-
   const { data: notifications } = await supabase
     .from('notifications')
     .select('id,title,body,type,status,created_at,action_url,tenant_id')

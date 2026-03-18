@@ -14,7 +14,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -148,4 +148,3 @@ async function sendViaAwsSes(to: string, subject: string, htmlBody: string, text
 
   console.log(`[AWS SES] Would send email to ${to}`)
 }
-

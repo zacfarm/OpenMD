@@ -1,4 +1,5 @@
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 
 import { createSupabaseServerClient } from '@/lib/supabaseServer'
 import { hasPermission } from '@/lib/rbac'
@@ -6,24 +7,28 @@ import { hasPermission } from '@/lib/rbac'
 async function createMarketplacePost(formData: FormData) {
   'use server'
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) return
+  if (!user) redirect('/login')
 
   const postType = String(formData.get('postType') || '')
-  if (!['facility_request', 'provider_offer'].includes(postType)) return
+  if (!['facility_request', 'provider_offer'].includes(postType)) {
+    redirect('/bookings?error=Invalid marketplace post type.')
+  }
 
   const { data: membership } = await supabase
     .from('tenant_memberships')
-    .select('tenant_id')
+    .select('tenant_id,role')
     .eq('user_id', user.id)
     .limit(1)
     .maybeSingle()
 
-  if (!hasPermission(membership?.role, 'create_marketplace_post')) return
+  if (!hasPermission(membership?.role, 'create_marketplace_post')) {
+    redirect('/bookings?error=You do not have permission to publish marketplace posts.')
+  }
 
   const { data: providerProfile } = await supabase
     .from('provider_profiles')
@@ -33,9 +38,11 @@ async function createMarketplacePost(formData: FormData) {
     .maybeSingle()
 
   const title = String(formData.get('title') || '').trim()
-  if (!title) return
+  if (!title) {
+    redirect('/bookings?error=Title is required.')
+  }
 
-  await supabase.from('marketplace_posts').insert({
+  const { error } = await supabase.from('marketplace_posts').insert({
     post_type: postType,
     tenant_id: membership?.tenant_id ?? null,
     provider_id: postType === 'provider_offer' ? (providerProfile?.id ?? null) : null,
@@ -48,44 +55,66 @@ async function createMarketplacePost(formData: FormData) {
     created_by: user.id,
   })
 
+  if (error) {
+    redirect(`/bookings?error=${encodeURIComponent(error.message)}`)
+  }
+
   revalidatePath('/bookings')
+  redirect('/bookings?success=Marketplace post published.')
 }
 
-async function claimMarketplacePost(formData: FormData) {
+async function claimMarketplacePost(formData: FormData) {  
   'use server'
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) return
-
-  const { data: membership } = await supabase
-    .from('tenant_memberships')
-    .select('role')
-    .eq('user_id', user.id)
-    .limit(1)
-    .maybeSingle()
-
-  if (!hasPermission(membership?.role, 'create_booking')) return
+  if (!user) redirect('/login')
 
   const postId = String(formData.get('postId') || '')
-  if (!postId) return
+  if (!postId) {
+    redirect('/bookings?error=Missing marketplace post.')
+  }
 
-  await supabase.rpc('claim_marketplace_post', { post_id: postId })
+  const { data: post } = await supabase
+    .from('marketplace_posts')
+    .select('created_by,status')
+    .eq('id', postId)
+    .maybeSingle()
+
+  if (!post) {
+    redirect('/bookings?error=Marketplace post not found.')
+  }
+
+  if (post.status !== 'open') {
+    redirect('/bookings?error=This post is no longer open.')
+  }
+
+  if (post.created_by === user.id) {
+    redirect('/bookings?error=You cannot claim your own post.')
+  }
+
+  const { error } = await supabase.rpc('claim_marketplace_post_text', { post_id_input: postId })
+  if (error) {
+    redirect(`/bookings?error=${encodeURIComponent(error.message)}`)
+  }
+
   revalidatePath('/bookings')
+  revalidatePath('/calendar')
+  redirect('/bookings?success=Marketplace post claimed.')
 }
 
 async function closeMarketplacePost(formData: FormData) {
   'use server'
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) return
+  if (!user) redirect('/login')
 
   const { data: membership } = await supabase
     .from('tenant_memberships')
@@ -94,22 +123,36 @@ async function closeMarketplacePost(formData: FormData) {
     .limit(1)
     .maybeSingle()
 
-  if (!hasPermission(membership?.role, 'manage_bookings')) return
+  if (!hasPermission(membership?.role, 'manage_bookings')) {
+    redirect('/bookings?error=You do not have permission to close marketplace posts.')
+  }
 
   const postId = String(formData.get('postId') || '')
-  if (!postId) return
+  if (!postId) {
+    redirect('/bookings?error=Missing marketplace post.')
+  }
 
-  await supabase
+  const { error } = await supabase
     .from('marketplace_posts')
     .update({ status: 'closed' })
     .eq('id', postId)
     .eq('created_by', user.id)
 
+  if (error) {
+    redirect(`/bookings?error=${encodeURIComponent(error.message)}`)
+  }
+
   revalidatePath('/bookings')
+  redirect('/bookings?success=Marketplace post closed.')
 }
 
-export default async function BookingsPage() {
-  const supabase = createSupabaseServerClient()
+export default async function BookingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string; success?: string }>
+}) {
+  const resolvedSearchParams = await searchParams
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -137,6 +180,8 @@ export default async function BookingsPage() {
           This board is global across OpenMD. Facility requests and provider availability posts are visible to all
           authenticated users across practices and facilities.
         </p>
+        {resolvedSearchParams?.error && <p style={{ color: 'var(--warning)', margin: '8px 0' }}>{resolvedSearchParams.error}</p>}
+        {resolvedSearchParams?.success && <p style={{ color: 'var(--ok)', margin: '8px 0' }}>{resolvedSearchParams.success}</p>}
 
         {hasPermission(role, 'create_marketplace_post') ? (
           <form action={createMarketplacePost} style={{ display: 'grid', gap: 10, gridTemplateColumns: '1fr 2fr 1fr 1fr 1fr 1fr' }}>
@@ -165,6 +210,7 @@ export default async function BookingsPage() {
           {(posts ?? []).map((post) => {
             const isCreator = user?.id === post.created_by
             const isOpen = post.status === 'open'
+            const canClaimPost = !isCreator && isOpen
 
             return (
               <div key={post.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10 }}>
@@ -183,13 +229,19 @@ export default async function BookingsPage() {
                 {post.details && <p style={{ margin: '4px 0' }}>{post.details}</p>}
 
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {isOpen && hasPermission(role, 'create_booking') && (
+                  {canClaimPost && (
                     <form action={claimMarketplacePost}>
                       <input type="hidden" name="postId" value={post.id} />
                       <button className="btn btn-secondary" type="submit">
                         Claim
                       </button>
                     </form>
+                  )}
+
+                  {isCreator && isOpen && (
+                    <span style={{ color: 'var(--muted)', fontSize: 13 }}>
+                      Open posts can be accepted by any other signed-in OpenMD user.
+                    </span>
                   )}
 
                   {isCreator && post.status !== 'closed' && hasPermission(role, 'manage_bookings') && (

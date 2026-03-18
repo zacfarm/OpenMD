@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
+import { getGlobalAdminAccess } from '@/lib/openmdAdmin'
 import { createSupabaseServerClient } from '@/lib/supabaseServer'
 import { hasPermission, getRoleLabel, normalizeTenantRole } from '@/lib/rbac'
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -29,6 +30,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   const active = memberships?.[0]
   const activeTenant = Array.isArray(active?.tenants) ? active.tenants[0] : active?.tenants
+  const adminAccess = await getGlobalAdminAccess()
   const role = active?.role ?? null
   const normalizedRole = normalizeTenantRole(role)
 
@@ -50,6 +52,9 @@ export default async function ProtectedLayout({ children }: { children: React.Re
             {hasPermission(role, 'view_bookings') && normalizedRole !== 'billing' && (
               <Link href="/bookings" className="app-nav-link">Bookings</Link>
             )}
+            {hasPermission(role, 'view_bookings') && (
+              <Link href="/calendar" className="app-nav-link">Calendar</Link>
+            )}
             {hasPermission(role, 'view_providers') && normalizedRole !== 'billing' && (
               <Link href="/providers" className="app-nav-link">Providers</Link>
             )}
@@ -69,6 +74,9 @@ export default async function ProtectedLayout({ children }: { children: React.Re
             )}
             {hasPermission(role, 'manage_team') && (
               <Link href="/settings/team" className="app-nav-link">Team</Link>
+            )}
+            {(adminAccess.isGlobalAdmin || adminAccess.needsBootstrap) && (
+              <Link href="/admin" className="app-nav-link">Admin</Link>
             )}
           </nav>
 
