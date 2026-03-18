@@ -43,12 +43,16 @@ on conflict (payer_code) do nothing;
 alter table public.insurance_payers enable row level security;
 alter table public.insurance_claims enable row level security;
 
+drop policy if exists "insurance_payers_select_authenticated" on public.insurance_payers;
+drop policy if exists "insurance_claims_select_billing_roles" on public.insurance_claims;
+drop policy if exists "insurance_claims_insert_billing_roles" on public.insurance_claims;
+
 create policy "insurance_payers_select_authenticated" on public.insurance_payers
   for select to authenticated using (is_active = true);
 
 create policy "insurance_claims_select_billing_roles" on public.insurance_claims
   for select to authenticated using (
-    public.current_tenant_role(tenant_id) in ('admin', 'billing', 'facility_manager', 'credentialing', 'scheduler')
+    public.current_tenant_role(tenant_id) in ('admin', 'billing', 'facility_manager', 'credentialing')
   );
 
 create policy "insurance_claims_insert_billing_roles" on public.insurance_claims

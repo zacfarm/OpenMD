@@ -6,7 +6,7 @@ import ProviderCredentialsClient from '@/app/(protected)/credentials/ProviderCre
 import AdminCredentialsReview from '@/app/(protected)/credentials/AdminCredentialsReview'
 
 export default async function CredentialsPage() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

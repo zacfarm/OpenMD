@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/credential-expiry",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/send-notification-emails",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/send-push-notifications",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ import { hasPermission } from '@/lib/rbac'
 async function addProvider(formData: FormData) {
   'use server'
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -39,7 +39,7 @@ async function addProvider(formData: FormData) {
 async function addAvailability(formData: FormData) {
   'use server'
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const providerId = String(formData.get('providerId') || '')
 
   if (!providerId) return
@@ -69,7 +69,7 @@ async function addAvailability(formData: FormData) {
 async function addTimeOff(formData: FormData) {
   'use server'
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const providerId = String(formData.get('providerId') || '')
 
   if (!providerId) return
@@ -96,29 +96,35 @@ async function addTimeOff(formData: FormData) {
 }
 
 export default async function ProvidersPage() {
-  const supabase = createSupabaseServerClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   const { data: membership } = await supabase
     .from('tenant_memberships')
-    .select('role')
-    .eq('user_id', user!.id)
+    .select('tenant_id,role,tenants(name,org_type)')
+    .eq('user_id', user?.id ?? '')
     .limit(1)
     .maybeSingle()
 
+  const tenantId = membership?.tenant_id ?? null
+  const activeTenant = Array.isArray(membership?.tenants) ? membership?.tenants[0] : membership?.tenants
   const role = membership?.role ?? null
 
   const { data: providers } = await supabase
     .from('provider_profiles')
     .select('id,display_name,specialty,home_city,home_state,provider_availability(id,weekday,start_time,end_time,location),provider_time_off(id,starts_at,ends_at,reason)')
+    .eq('practice_tenant_id', tenantId)
     .order('created_at', { ascending: false })
 
   return (
     <section style={{ display: 'grid', gap: 14 }}>
       <article className="card" style={{ padding: 18 }}>
         <h1 style={{ marginTop: 0 }}>Provider Scheduling</h1>
-        <p style={{ color: 'var(--muted)' }}>Add provider records and maintain availability/time-off blocks.</p>
+        <p style={{ color: 'var(--muted)' }}>
+          Add provider records for {activeTenant?.name ?? 'your workspace'} and maintain availability/time-off blocks.
+        </p>
         {hasPermission(role, 'manage_providers') && (
           <form action={addProvider} style={{ display: 'grid', gap: 10, gridTemplateColumns: '2fr 1fr 1fr 1fr auto' }}>
             <input className="field" name="displayName" placeholder="Provider name" required />

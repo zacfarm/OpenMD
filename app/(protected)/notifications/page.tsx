@@ -1,53 +1,47 @@
-import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 
 import { createSupabaseServerClient } from '@/lib/supabaseServer'
+import type { TenantRole } from '@/lib/notificationRoles'
 
-async function markRead(formData: FormData) {
-  'use server'
-
-  const supabase = createSupabaseServerClient()
-  const notificationId = String(formData.get('notificationId') || '')
-
-  if (!notificationId) return
-
-  await supabase.from('notifications').update({ status: 'read' }).eq('id', notificationId)
-  revalidatePath('/notifications')
-}
+import { NotificationsClient } from './NotificationsClient'
+import { PushSubscribeButton } from './PushSubscribeButton'
 
 export default async function NotificationsPage() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
   const { data: notifications } = await supabase
     .from('notifications')
-    .select('id,title,body,type,status,created_at,action_url')
+    .select('id,title,body,type,status,created_at,action_url,tenant_id')
     .order('created_at', { ascending: false })
     .limit(60)
 
-  return (
-    <section className="card" style={{ padding: 18 }}>
-      <h1 style={{ marginTop: 0 }}>Notification Center</h1>
-      <p style={{ color: 'var(--muted)' }}>
-        Includes booking requests, booking status changes, and scheduling alerts.
-      </p>
+  // Fetch user's roles across all tenants
+  const { data: tenantMembers } = await supabase
+    .from('tenant_memberships')
+    .select('tenant_id,role')
+    .eq('user_id', user.id)
 
-      <div style={{ display: 'grid', gap: 10 }}>
-        {(notifications ?? []).map((item) => (
-          <article key={item.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 12 }}>
-            <p style={{ margin: 0, fontWeight: 700 }}>
-              {item.title} {item.status === 'unread' && <span style={{ color: 'var(--accent)' }}>(new)</span>}
-            </p>
-            <p style={{ margin: '4px 0 8px' }}>{item.body}</p>
-            <p style={{ margin: 0, color: 'var(--muted)', fontSize: 13 }}>{new Date(item.created_at).toLocaleString()}</p>
-            <form action={markRead} style={{ marginTop: 8 }}>
-              <input type="hidden" name="notificationId" value={item.id} />
-              {item.status === 'unread' && (
-                <button className="btn btn-secondary" type="submit">
-                  Mark read
-                </button>
-              )}
-            </form>
-          </article>
-        ))}
-      </div>
-    </section>
+  // Build a map of tenant_id → roles for quick lookup
+  const rolesByTenant = new Map<string, TenantRole[]>()
+  if (tenantMembers) {
+    for (const member of tenantMembers) {
+      const roles = rolesByTenant.get(member.tenant_id) || []
+      roles.push(member.role as TenantRole)
+      rolesByTenant.set(member.tenant_id, roles)
+    }
+  }
+
+  return (
+    <div style={{ display: 'grid', gap: 20 }}>
+      <NotificationsClient 
+        initialNotifications={notifications ?? []} 
+        userId={user.id}
+        rolesByTenant={Object.fromEntries(rolesByTenant)}
+      />
+      <PushSubscribeButton />
+    </div>
   )
 }

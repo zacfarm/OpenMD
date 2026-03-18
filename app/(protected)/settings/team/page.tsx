@@ -14,7 +14,7 @@ function toLegacyTenantRole(role: string) {
 async function createInvite(formData: FormData) {
   'use server'
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -83,9 +83,10 @@ async function createInvite(formData: FormData) {
 export default async function TeamSettingsPage({
   searchParams,
 }: {
-  searchParams?: { error?: string; success?: string }
+  searchParams?: Promise<{ error?: string; success?: string }>
 }) {
-  const supabase = createSupabaseServerClient()
+  const resolvedSearchParams = await searchParams
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -133,8 +134,8 @@ export default async function TeamSettingsPage({
   }>
   const membershipTenant = Array.isArray(membership?.tenants) ? membership?.tenants[0] : membership?.tenants
   const appBaseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
-  const actionError = searchParams?.error || null
-  const actionSuccess = searchParams?.success || null
+  const actionError = resolvedSearchParams?.error || null
+  const actionSuccess = resolvedSearchParams?.success || null
 
   return (
     <section style={{ display: 'grid', gap: 14 }}>
