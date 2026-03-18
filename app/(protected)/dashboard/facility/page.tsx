@@ -119,89 +119,116 @@ export default async function FacilityDashboardPage() {
 
   const total6MoCost = monthlyPoints.reduce((s, p) => s + p.amount, 0)
   const avgMonthlyCost = total6MoCost / Math.max(1, monthlyPoints.length)
+  const total6MoClaims = monthlyPoints.reduce((s, p) => s + p.count, 0)
+  const latestUtilization = weeklyPoints[weeklyPoints.length - 1]?.utilizationPct ?? 0
+  const latestUtilizedProviders = weeklyPoints[weeklyPoints.length - 1]?.utilizedProviders ?? 0
 
   const tenant = Array.isArray(membership.tenants) ? membership.tenants[0] : membership.tenants
 
   return (
-    <section style={{ display: 'grid', gap: 14 }}>
-      <article className="card" style={{ padding: 18 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div>
-            <h1 style={{ margin: 0 }}>Facility Analytics Dashboard</h1>
-            <p style={{ margin: '6px 0 0', color: 'var(--muted)' }}>
-              {tenant?.name ?? 'Facility'} • utilization and cost trends
-            </p>
-          </div>
+    <section className="dashboard-shell">
+      <article className="card dashboard-hero">
+        <div>
+          <p className="dashboard-eyebrow">Facility manager analytics</p>
+          <h1 style={{ marginBottom: 4 }}>Facility Performance Studio</h1>
+          <p className="dashboard-subtext">
+            {tenant?.name ?? 'Facility'} • utilization and financial trendline
+          </p>
+        </div>
+        <div className="dashboard-actions">
           <Link className="btn btn-secondary" href="/dashboard">
             Back to dashboard
+          </Link>
+          <Link className="btn btn-primary" href="/billing">
+            Open billing
           </Link>
         </div>
       </article>
 
-      <article className="card" style={{ padding: 18 }}>
-        <h2 style={{ marginTop: 0 }}>Weekly staff utilization (8 weeks)</h2>
-        <p style={{ marginTop: 0, color: 'var(--muted)' }}>
-          Percentage of providers with at least one accepted/confirmed booking each week.
-        </p>
+      <section className="dashboard-metric-grid">
+        <article className="card metric-tile">
+          <p className="metric-label">Current utilization</p>
+          <p className="metric-value">{latestUtilization}%</p>
+          <p className="metric-hint">{latestUtilizedProviders}/{providerCount} providers booked this week</p>
+        </article>
+        <article className="card metric-tile">
+          <p className="metric-label">6-month spend</p>
+          <p className="metric-value">{formatMoney(total6MoCost)}</p>
+          <p className="metric-hint">Total billed amount across last 6 months</p>
+        </article>
+        <article className="card metric-tile">
+          <p className="metric-label">Avg monthly spend</p>
+          <p className="metric-value">{formatMoney(avgMonthlyCost)}</p>
+          <p className="metric-hint">Trailing 6-month monthly average</p>
+        </article>
+        <article className="card metric-tile">
+          <p className="metric-label">Claims volume</p>
+          <p className="metric-value">{total6MoClaims}</p>
+          <p className="metric-hint">Claims submitted in the last 6 months</p>
+        </article>
+      </section>
 
-        <div style={{ display: 'grid', gap: 8 }}>
-          {weeklyPoints.map((p) => (
-            <div key={p.label} style={{ display: 'grid', gridTemplateColumns: '70px 1fr 140px', gap: 10, alignItems: 'center' }}>
-              <span style={{ color: 'var(--muted)', fontSize: 13 }}>{p.label}</span>
-              <div style={{ height: 14, background: '#e7efe9', borderRadius: 999, overflow: 'hidden' }}>
-                <div
-                  style={{
-                    height: '100%',
-                    width: `${Math.round((p.utilizationPct / maxUtil) * 100)}%`,
-                    background: 'linear-gradient(90deg, #0c7a5a 0%, #18a878 100%)',
-                  }}
-                />
+      <section className="dashboard-two-col">
+        <article className="card" style={{ padding: 18 }}>
+          <h2 style={{ marginTop: 0 }}>Weekly staff utilization (8 weeks)</h2>
+          <p style={{ marginTop: 0, color: 'var(--muted)' }}>
+            Percent of providers with at least one accepted or confirmed booking each week.
+          </p>
+
+          <div style={{ display: 'grid', gap: 8 }}>
+            {weeklyPoints.map((p) => (
+              <div key={p.label} style={{ display: 'grid', gridTemplateColumns: '72px 1fr 144px', gap: 10, alignItems: 'center' }}>
+                <span style={{ color: 'var(--muted)', fontSize: 13 }}>{p.label}</span>
+                <div style={{ height: 14, background: '#e7efe9', borderRadius: 999, overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${Math.round((p.utilizationPct / maxUtil) * 100)}%`,
+                      background: 'linear-gradient(90deg, #0c7a5a 0%, #18a878 100%)',
+                    }}
+                  />
+                </div>
+                <span style={{ fontSize: 13 }}>
+                  {p.utilizationPct}% ({p.utilizedProviders}/{providerCount})
+                </span>
               </div>
-              <span style={{ fontSize: 13 }}>
-                {p.utilizationPct}% ({p.utilizedProviders}/{providerCount})
-              </span>
-            </div>
-          ))}
-        </div>
-      </article>
+            ))}
+          </div>
+        </article>
 
-      <article className="card" style={{ padding: 18 }}>
-        <h2 style={{ marginTop: 0 }}>Monthly claims cost trend (6 months)</h2>
-        <p style={{ marginTop: 0, color: 'var(--muted)' }}>
-          Tracks billed claim volume and total cost by submission month.
-        </p>
+        <article className="card" style={{ padding: 18 }}>
+          <h2 style={{ marginTop: 0 }}>Monthly claims cost trend (6 months)</h2>
+          <p style={{ marginTop: 0, color: 'var(--muted)' }}>
+            Tracks billed volume and spend by claim submission month.
+          </p>
 
-        <div style={{ display: 'grid', gap: 8 }}>
-          {monthlyPoints.map((p) => (
-            <div key={p.label} style={{ display: 'grid', gridTemplateColumns: '70px 1fr 180px', gap: 10, alignItems: 'center' }}>
-              <span style={{ color: 'var(--muted)', fontSize: 13 }}>{p.label}</span>
-              <div style={{ height: 14, background: '#edf1f9', borderRadius: 999, overflow: 'hidden' }}>
-                <div
-                  style={{
-                    height: '100%',
-                    width: `${Math.round((p.amount / maxCost) * 100)}%`,
-                    background: 'linear-gradient(90deg, #1f4b99 0%, #4f7ad1 100%)',
-                  }}
-                />
+          <div style={{ display: 'grid', gap: 8 }}>
+            {monthlyPoints.map((p) => (
+              <div key={p.label} style={{ display: 'grid', gridTemplateColumns: '72px 1fr 188px', gap: 10, alignItems: 'center' }}>
+                <span style={{ color: 'var(--muted)', fontSize: 13 }}>{p.label}</span>
+                <div style={{ height: 14, background: '#edf1f9', borderRadius: 999, overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${Math.round((p.amount / maxCost) * 100)}%`,
+                      background: 'linear-gradient(90deg, #1f4b99 0%, #4f7ad1 100%)',
+                    }}
+                  />
+                </div>
+                <span style={{ fontSize: 13 }}>
+                  {formatMoney(p.amount)} ({p.count} claims)
+                </span>
               </div>
-              <span style={{ fontSize: 13 }}>
-                {formatMoney(p.amount)} ({p.count} claims)
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', marginTop: 14 }}>
-          <article className="card" style={{ padding: 12 }}>
-            <p style={{ margin: 0, color: 'var(--muted)', fontSize: 13 }}>6-month total</p>
-            <p style={{ margin: '6px 0 0', fontSize: 24 }}>{formatMoney(total6MoCost)}</p>
-          </article>
-          <article className="card" style={{ padding: 12 }}>
-            <p style={{ margin: 0, color: 'var(--muted)', fontSize: 13 }}>Average monthly cost</p>
-            <p style={{ margin: '6px 0 0', fontSize: 24 }}>{formatMoney(avgMonthlyCost)}</p>
-          </article>
-        </div>
-      </article>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+            <Link className="btn btn-secondary" href="/providers">Review providers</Link>
+            <Link className="btn btn-secondary" href="/bookings">Open bookings</Link>
+            <Link className="btn btn-secondary" href="/notifications">View alerts</Link>
+          </div>
+        </article>
+      </section>
     </section>
   )
 }

@@ -14,11 +14,18 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     redirect('/login')
   }
 
-  const { data: memberships } = await supabase
-    .from('tenant_memberships')
-    .select('tenant_id,role,tenants(name,org_type)')
-    .eq('user_id', user.id)
-    .limit(1)
+  const [{ data: memberships }, { count: unreadCount }] = await Promise.all([
+    supabase
+      .from('tenant_memberships')
+      .select('tenant_id,role,tenants(name,org_type)')
+      .eq('user_id', user.id)
+      .limit(1),
+    supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'unread'),
+  ])
 
   const active = memberships?.[0]
   const activeTenant = Array.isArray(active?.tenants) ? active.tenants[0] : active?.tenants
@@ -26,35 +33,46 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   const normalizedRole = normalizeTenantRole(role)
 
   return (
-    <div>
-      <header style={{ borderBottom: '1px solid var(--line)', background: 'var(--surface)' }}>
-        <div className="container" style={{ display: 'flex', gap: 16, alignItems: 'center', padding: '12px 0' }}>
-          <Link href="/dashboard" style={{ fontWeight: 800, textDecoration: 'none' }}>
-            OpenMD
-          </Link>
-          <Link href="/dashboard">Dashboard</Link>
-          {hasPermission(role, 'view_bookings') && normalizedRole !== 'billing' && (
-            <Link href="/bookings">Bookings</Link>
-          )}
-          {hasPermission(role, 'view_providers') && normalizedRole !== 'billing' && (
-            <Link href="/providers">Providers</Link>
-          )}
-          {hasPermission(role, 'view_billing') && (
-            <Link href="/billing">Billing</Link>
-          )}
-          {hasPermission(role, 'view_notifications') && (
-            <Link href="/notifications">Notifications</Link>
-          )}
-          {hasPermission(role, 'view_credentials') && normalizedRole !== 'credentialing' && (
-            <Link href="/credentials">Credentials</Link>
-          )}
-          {hasPermission(role, 'manage_team') && (
-            <Link href="/settings/team">Team</Link>
-          )}
-          <span style={{ marginLeft: 'auto', color: 'var(--muted)', fontSize: 13 }}>
-            {activeTenant?.name ?? 'No workspace'} ({getRoleLabel(role)})
-          </span>
-          <form action="/logout" method="post">
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="container app-header-inner">
+          <div className="app-brand-wrap">
+            <Link href="/dashboard" className="app-brand" aria-label="OpenMD Dashboard">
+              OpenMD
+            </Link>
+            <span className="app-workspace-pill">
+              {activeTenant?.name ?? 'No workspace'} • {getRoleLabel(role)}
+            </span>
+          </div>
+
+          <nav className="app-nav" aria-label="Primary">
+            <Link href="/dashboard" className="app-nav-link">Dashboard</Link>
+            {hasPermission(role, 'view_bookings') && normalizedRole !== 'billing' && (
+              <Link href="/bookings" className="app-nav-link">Bookings</Link>
+            )}
+            {hasPermission(role, 'view_providers') && normalizedRole !== 'billing' && (
+              <Link href="/providers" className="app-nav-link">Providers</Link>
+            )}
+            {hasPermission(role, 'view_billing') && (
+              <Link href="/billing" className="app-nav-link">Billing</Link>
+            )}
+            {hasPermission(role, 'view_notifications') && (
+              <Link href="/notifications" className="app-nav-link app-nav-link-notifications">
+                Notifications
+                {unreadCount != null && unreadCount > 0 && (
+                  <span className="app-notification-count">{unreadCount}</span>
+                )}
+              </Link>
+            )}
+            {hasPermission(role, 'view_credentials') && normalizedRole !== 'credentialing' && (
+              <Link href="/credentials" className="app-nav-link">Credentials</Link>
+            )}
+            {hasPermission(role, 'manage_team') && (
+              <Link href="/settings/team" className="app-nav-link">Team</Link>
+            )}
+          </nav>
+
+          <form action="/logout" method="post" className="app-logout-form">
             <button className="btn btn-secondary" type="submit">
               Logout
             </button>

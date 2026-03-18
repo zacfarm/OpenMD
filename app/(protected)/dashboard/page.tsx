@@ -1,6 +1,12 @@
 import { createSupabaseServerClient } from '@/lib/supabaseServer'
 import { getRoleLabel, hasPermission, normalizeTenantRole } from '@/lib/rbac'
 import { revalidatePath } from 'next/cache'
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+
+function formatMoney(value: number) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)
+}
 
 async function claimPostedShift(formData: FormData) {
   'use server'
@@ -35,10 +41,14 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
+  if (!user) {
+    redirect('/login')
+  }
+
   const { data: memberships } = await supabase
     .from('tenant_memberships')
     .select('tenant_id,role,tenants(name,org_type)')
-    .eq('user_id', user!.id)
+    .eq('user_id', user.id)
 
   const activeMembership = memberships?.[0]
   const activeTenant = Array.isArray(activeMembership?.tenants)
@@ -46,7 +56,7 @@ export default async function DashboardPage() {
     : activeMembership?.tenants
   const role = normalizeTenantRole(activeMembership?.role)
 
-  const [{ count: providerCount }, { count: bookingCount }, { count: unreadCount }, { count: claimsCount }] = await Promise.all([
+  const [{ count: providerCount }, { count: bookingCount }, { count: unreadCount }, { count: claimsCount }, { count: teamCount }, { count: openMarketplaceCount }] = await Promise.all([
     supabase.from('provider_profiles').select('id', { count: 'exact', head: true }),
     activeMembership
       ? supabase
@@ -54,12 +64,29 @@ export default async function DashboardPage() {
           .select('id', { count: 'exact', head: true })
           .eq('requesting_tenant_id', activeMembership.tenant_id)
       : Promise.resolve({ count: 0 } as { count: number }),
-    supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('status', 'unread'),
+    supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'unread'),
     activeMembership
       ? supabase
           .from('insurance_claims')
           .select('id', { count: 'exact', head: true })
           .eq('tenant_id', activeMembership.tenant_id)
+      : Promise.resolve({ count: 0 } as { count: number }),
+    activeMembership
+      ? supabase
+          .from('tenant_memberships')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', activeMembership.tenant_id)
+      : Promise.resolve({ count: 0 } as { count: number }),
+    activeMembership
+      ? supabase
+          .from('marketplace_posts')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', activeMembership.tenant_id)
+          .eq('status', 'open')
       : Promise.resolve({ count: 0 } as { count: number }),
   ])
 
@@ -187,42 +214,128 @@ export default async function DashboardPage() {
   }
 
   return (
-    <section style={{ display: 'grid', gap: 14 }}>
-      <article className="card" style={{ padding: 20 }}>
-        <h1 style={{ marginTop: 0 }}>{getRoleLabel(role)} Dashboard</h1>
-        <p style={{ color: 'var(--muted)' }}>
-          Tenant: {activeTenant?.name ?? 'Not configured'} ({activeTenant?.org_type ?? 'n/a'})
-        </p>
-        <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', marginTop: 14 }}>
-          <article className="card" style={{ padding: 14 }}>
-            <h2 style={{ margin: 0, fontSize: 16 }}>Providers</h2>
-            <p style={{ margin: '8px 0 0', fontSize: 30 }}>{providerCount ?? 0}</p>
-          </article>
-          <article className="card" style={{ padding: 14 }}>
-            <h2 style={{ margin: 0, fontSize: 16 }}>{role === 'billing' ? 'Claims submitted' : 'Booking requests'}</h2>
-            <p style={{ margin: '8px 0 0', fontSize: 30 }}>{role === 'billing' ? claimsCount ?? 0 : bookingCount ?? 0}</p>
-          </article>
-          <article className="card" style={{ padding: 14 }}>
-            <h2 style={{ margin: 0, fontSize: 16 }}>Unread notifications</h2>
-            <p style={{ margin: '8px 0 0', fontSize: 30 }}>{unreadCount ?? 0}</p>
-          </article>
+    <section className="dashboard-shell">
+      <article className="card dashboard-hero">
+        <div>
+          <p className="dashboard-eyebrow">{getRoleLabel(role)} workspace</p>
+          <h1>
+            {role === 'admin'
+              ? 'Admin Command Center'
+              : role === 'doctor'
+                ? 'Provider Workbench'
+                : `${getRoleLabel(role)} Dashboard`}
+          </h1>
+          <p className="dashboard-subtext">
+            {activeTenant?.name ?? 'No active tenant'} ({activeTenant?.org_type ?? 'n/a'})
+          </p>
+        </div>
+        <div className="dashboard-actions">
+          <Link className="btn btn-primary" href="/notifications">
+            View notifications
+          </Link>
+          {hasPermission(role, 'view_bookings') && (
+            <Link className="btn btn-secondary" href="/bookings">
+              Open bookings
+            </Link>
+          )}
         </div>
       </article>
 
+      <section className="dashboard-metric-grid">
+        <article className="card metric-tile">
+          <p className="metric-label">Providers</p>
+          <p className="metric-value">{providerCount ?? 0}</p>
+          <p className="metric-hint">Networked clinicians in your ecosystem</p>
+        </article>
+        <article className="card metric-tile">
+          <p className="metric-label">{role === 'billing' ? 'Claims submitted' : 'Booking requests'}</p>
+          <p className="metric-value">{role === 'billing' ? claimsCount ?? 0 : bookingCount ?? 0}</p>
+          <p className="metric-hint">Current activity volume</p>
+        </article>
+        <article className="card metric-tile">
+          <p className="metric-label">Unread notifications</p>
+          <p className="metric-value">{unreadCount ?? 0}</p>
+          <p className="metric-hint">Alerts waiting for your action</p>
+        </article>
+        <article className="card metric-tile">
+          <p className="metric-label">Active team</p>
+          <p className="metric-value">{teamCount ?? 0}</p>
+          <p className="metric-hint">Members in current tenant</p>
+        </article>
+      </section>
+
+      {role === 'admin' && (
+        <section className="dashboard-two-col">
+          <article className="card" style={{ padding: 18 }}>
+            <h2 style={{ marginTop: 0 }}>Operations overview</h2>
+            <p style={{ marginTop: 0, color: 'var(--muted)' }}>
+              High-level admin visibility across staffing, billing, and team operations.
+            </p>
+            <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+              <article className="dashboard-mini-stat">
+                <p className="metric-label">Open marketplace posts</p>
+                <p className="metric-value">{openMarketplaceCount ?? 0}</p>
+              </article>
+              <article className="dashboard-mini-stat">
+                <p className="metric-label">Total claims</p>
+                <p className="metric-value">{claimsCount ?? 0}</p>
+              </article>
+              <article className="dashboard-mini-stat">
+                <p className="metric-label">Bookings queue</p>
+                <p className="metric-value">{bookingCount ?? 0}</p>
+              </article>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+              <Link href="/settings/team" className="btn btn-secondary">Manage team</Link>
+              <Link href="/billing" className="btn btn-secondary">Review billing</Link>
+              <Link href="/providers" className="btn btn-secondary">Provider directory</Link>
+            </div>
+          </article>
+
+          <article className="card" style={{ padding: 18 }}>
+            <h2 style={{ marginTop: 0 }}>Claims snapshot</h2>
+            <p style={{ marginTop: 0, color: 'var(--muted)' }}>
+              Recent financial signal for quick admin decisions.
+            </p>
+            {claimRows.length === 0 ? (
+              <p style={{ margin: 0, color: 'var(--muted)' }}>No claims activity yet.</p>
+            ) : (
+              <div style={{ display: 'grid', gap: 10 }}>
+                {claimRows.map((claim) => {
+                  const payer = Array.isArray(claim.insurance_payers) ? claim.insurance_payers[0] : claim.insurance_payers
+                  return (
+                    <article key={claim.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10 }}>
+                      <p style={{ margin: 0, fontWeight: 700 }}>{claim.patient_name}</p>
+                      <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 13 }}>
+                        {payer?.payer_name ?? 'Unknown payer'} • {formatMoney(claim.billed_amount)} • {claim.status}
+                      </p>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+          </article>
+        </section>
+      )}
+
       {role === 'doctor' && (
-        <article className="card" style={{ padding: 18 }}>
-          <h2 style={{ marginTop: 0 }}>Open shifts you can claim</h2>
-          <p style={{ color: 'var(--muted)' }}>Claim posted shifts with one click for faster booking.</p>
-          <div style={{ display: 'grid', gap: 10 }}>
+        <section className="dashboard-two-col" style={{ gridTemplateColumns: '1.25fr 0.75fr' }}>
+          <article className="card" style={{ padding: 18 }}>
+            <h2 style={{ marginTop: 0 }}>Open shifts you can claim</h2>
+            <p style={{ color: 'var(--muted)' }}>Claim posted shifts with one click and fill your schedule faster.</p>
+            <div style={{ display: 'grid', gap: 10 }}>
             {(openFacilityShifts ?? []).length === 0 ? (
               <p style={{ margin: 0, color: 'var(--muted)' }}>No open facility shifts are available right now.</p>
             ) : (
               (openFacilityShifts ?? []).map((post) => (
-                <div key={post.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10, display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                <article key={post.id} className="dashboard-shift-row">
                   <div>
                     <p style={{ margin: 0, fontWeight: 700 }}>{post.title}</p>
                     <p style={{ margin: '4px 0', color: 'var(--muted)' }}>
-                      {post.specialty ?? 'General'} | {post.location ?? 'No location'}
+                      {post.specialty ?? 'General'} • {post.location ?? 'No location'}
+                    </p>
+                    <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12 }}>
+                      {new Date(post.starts_at).toLocaleDateString()} {post.ends_at ? `to ${new Date(post.ends_at).toLocaleDateString()}` : ''}
                     </p>
                   </div>
                   <form action={claimPostedShift}>
@@ -231,11 +344,23 @@ export default async function DashboardPage() {
                       Claim shift
                     </button>
                   </form>
-                </div>
+                </article>
               ))
             )}
-          </div>
-        </article>
+            </div>
+          </article>
+
+          <article className="card" style={{ padding: 18 }}>
+            <h2 style={{ marginTop: 0 }}>Provider quick actions</h2>
+            <p style={{ marginTop: 0, color: 'var(--muted)' }}>Everything you need to stay booked and compliant.</p>
+            <div style={{ display: 'grid', gap: 8 }}>
+              <Link href="/bookings" className="btn btn-secondary">View my bookings</Link>
+              <Link href="/credentials" className="btn btn-secondary">Update credentials</Link>
+              <Link href="/notifications" className="btn btn-secondary">Check alerts</Link>
+              <Link href="/providers" className="btn btn-secondary">Explore providers</Link>
+            </div>
+          </article>
+        </section>
       )}
 
       {role === 'billing' && (
