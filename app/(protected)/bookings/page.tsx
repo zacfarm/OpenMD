@@ -1,57 +1,85 @@
-import { revalidatePath } from 'next/cache'
-
-import { createSupabaseServerClient } from '@/lib/supabaseServer'
+import { revalidatePath } from 'next/cache'  
+import { createSupabaseServerClient } from '@/lib/supabaseServer'  
 import { hasPermission } from '@/lib/rbac'
 
-async function createMarketplacePost(formData: FormData) {
+async function createMarketplacePost(formData: FormData) {  
   'use server'
 
-  const supabase = createSupabaseServerClient()
-  const {
-    data: { user },
+  const supabase = createSupabaseServerClient()  
+  const {  
+    data: { user },  
   } = await supabase.auth.getUser()
 
-  if (!user) return
+  if (!user) {  
+    console.warn('createMarketplacePost: No user found. Aborting.')  
+    return   
+  }
 
-  const postType = String(formData.get('postType') || '')
-  if (!['facility_request', 'provider_offer'].includes(postType)) return
+  const postType = String(formData.get('postType') || '')  
+  if (!['facility_request', 'provider_offer'].includes(postType)) {  
+    console.warn(`createMarketplacePost: Invalid postType: ${postType}. Aborting.`)  
+    return  
+  }
 
-  const { data: membership } = await supabase
-    .from('tenant_memberships')
-    .select('tenant_id,role')
-    .eq('user_id', user.id)
-    .limit(1)
+  const { data: membership, error: membershipError } = await supabase  
+    .from('tenant_memberships')  
+    .select('tenant_id, role')   
+    .eq('user_id', user.id)  
+    .limit(1)  
     .maybeSingle()
 
-  if (!hasPermission(membership?.role, 'create_marketplace_post')) return
+  if (membershipError) {  
+    console.error('Error fetching tenant membership:', membershipError);  
+    return;  
+  }
 
-  const { data: providerProfile } = await supabase
-    .from('provider_profiles')
-    .select('id')
-    .eq('user_id', user.id)
-    .limit(1)
+  if (!hasPermission(membership?.role, 'create_marketplace_post')) {  
+    console.warn(`createMarketplacePost: User ${user.id} lacks permission (Role: ${membership?.role}) to create marketplace post. Aborting.`)  
+    return  
+  }
+
+  const { data: providerProfile, error: providerProfileError } = await supabase  
+    .from('provider_profiles')  
+    .select('id')  
+    .eq('user_id', user.id)  
+    .limit(1)  
     .maybeSingle()
 
-  const title = String(formData.get('title') || '').trim()
-  if (!title) return
+  if (providerProfileError) {  
+    console.error('Error fetching provider profile:', providerProfileError);  
+    return;  
+  }
 
-  await supabase.from('marketplace_posts').insert({
-    post_type: postType,
-    tenant_id: membership?.tenant_id ?? null,
-    provider_id: postType === 'provider_offer' ? (providerProfile?.id ?? null) : null,
-    title,
-    specialty: String(formData.get('specialty') || '').trim() || null,
-    location: String(formData.get('location') || '').trim() || null,
-    starts_at: String(formData.get('startsAt') || '').trim() || null,
-    ends_at: String(formData.get('endsAt') || '').trim() || null,
-    details: String(formData.get('details') || '').trim() || null,
-    created_by: user.id,
-  })
+  const title = String(formData.get('title') || '').trim()  
+  if (!title) {  
+    console.warn('createMarketplacePost: Title is empty. Aborting.')  
+    return  
+  }
 
-  revalidatePath('/bookings')
+  const { data: insertData, error: insertError } = await supabase.from('marketplace_posts').insert({  
+    post_type: postType,  
+    tenant_id: membership?.tenant_id ?? null,  
+    provider_id: postType === 'provider_offer' ? (providerProfile?.id ?? null) : null,  
+    title,  
+    specialty: String(formData.get('specialty') || '').trim() || null,  
+    location: String(formData.get('location') || '').trim() || null,  
+    starts_at: String(formData.get('startsAt') || '').trim() || null,  
+    ends_at: String(formData.get('endsAt') || '').trim() || null,  
+    details: String(formData.get('details') || '').trim() || null,  
+    created_by: user.id,  
+  });
+
+  if (insertError) {  
+      console.error('Error inserting marketplace post:', insertError);  
+        
+  } else {  
+      console.log('Marketplace post created successfully:', insertData);  
+  }
+
+  revalidatePath('/bookings')  
 }
 
-async function claimMarketplacePost(formData: FormData) {  
+async function claimMarketplacePost(formData: FormData) {
   'use server'
 
   const supabase = createSupabaseServerClient()
