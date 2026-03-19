@@ -61,6 +61,7 @@ const TYPE_GROUP: Record<string, string> = {
   marketplace_claimed: 'marketplace',
   credential_reviewed: 'credentials',
   credential_expiring: 'credentials',
+  credential_missing: 'credentials',
   credential_pending_review: 'credentials',
   invite_accepted: 'team',
   team_member_joined: 'team',

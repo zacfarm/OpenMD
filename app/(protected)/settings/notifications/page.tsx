@@ -6,7 +6,7 @@ import type { TenantRole } from '@/lib/notificationRoles'
 import { NotificationPreferencesClient } from './NotificationPreferencesClient'
 
 export default async function NotificationSettingsPage() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -17,8 +17,9 @@ export default async function NotificationSettingsPage() {
     .select('event_type,in_app,email')
     .eq('user_id', user.id)
 
+  type PrefRow = { event_type: string; in_app: boolean; email: boolean }
   const prefsMap = Object.fromEntries(
-    (prefs ?? []).map((p) => [p.event_type, { in_app: p.in_app, email: p.email }])
+    ((prefs ?? []) as PrefRow[]).map((p) => [p.event_type, { in_app: p.in_app, email: p.email }])
   )
 
   // Fetch user's roles across all tenants
@@ -27,8 +28,13 @@ export default async function NotificationSettingsPage() {
     .select('role')
     .eq('user_id', user.id)
 
+  type TenantRoleRow = { role: TenantRole | null }
   const userRoles = Array.from(
-    new Set((tenantMembers ?? []).map((m) => m.role as TenantRole))
+    new Set(
+      ((tenantMembers ?? []) as TenantRoleRow[])
+        .map((m) => m.role)
+        .filter((r): r is TenantRole => !!r)
+    )
   )
 
   return <NotificationPreferencesClient initialPrefs={prefsMap} userRoles={userRoles} />
