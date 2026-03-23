@@ -15,7 +15,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     redirect('/login')
   }
 
-  const [{ data: memberships }, { count: unreadCount }] = await Promise.all([
+  const [{ data: memberships }, { count: unreadCount }, { data: profile }, { data: profileSettings }] = await Promise.all([
     supabase
       .from('tenant_memberships')
       .select('tenant_id,role,tenants(name,org_type)')
@@ -26,6 +26,16 @@ export default async function ProtectedLayout({ children }: { children: React.Re
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('status', 'unread'),
+    supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('user_profile_settings')
+      .select('avatar_path')
+      .eq('user_id', user.id)
+      .maybeSingle(),
   ])
 
   const active = memberships?.[0]
@@ -33,6 +43,14 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   const adminAccess = await getGlobalAdminAccess()
   const role = active?.role ?? null
   const normalizedRole = normalizeTenantRole(role)
+  const avatarPath = profileSettings?.avatar_path ?? null
+  const avatarFallback = (profile?.full_name || user.email || 'U').slice(0, 1).toUpperCase()
+
+  let avatarUrl: string | null = null
+  if (avatarPath) {
+    const { data } = await supabase.storage.from('profile-avatars').createSignedUrl(avatarPath, 60 * 60)
+    avatarUrl = data?.signedUrl ?? null
+  }
 
   return (
     <div className="app-shell">
@@ -69,7 +87,6 @@ export default async function ProtectedLayout({ children }: { children: React.Re
                 )}
               </Link>
             )}
-            <Link href="/settings/profile" className="app-nav-link">Profile</Link>
             {hasPermission(role, 'view_credentials') && normalizedRole !== 'credentialing' && (
               <Link href="/credentials" className="app-nav-link">Credentials</Link>
             )}
@@ -81,11 +98,20 @@ export default async function ProtectedLayout({ children }: { children: React.Re
             )}
           </nav>
 
-          <form action="/logout" method="post" className="app-logout-form">
-            <button className="btn btn-secondary" type="submit">
-              Logout
-            </button>
-          </form>
+          <div className="app-header-actions">
+            <Link href="/settings/profile" className="app-profile-avatar-link" aria-label="Open profile settings" title="Profile settings">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Profile avatar" className="app-profile-avatar-image" />
+              ) : (
+                <span className="app-profile-avatar-fallback" aria-hidden="true">{avatarFallback}</span>
+              )}
+            </Link>
+            <form action="/logout" method="post" className="app-logout-form">
+              <button className="btn btn-secondary" type="submit">
+                Logout
+              </button>
+            </form>
+          </div>
         </div>
       </header>
       <main className="container" style={{ padding: '26px 0 40px' }}>

@@ -188,6 +188,46 @@ a.card:hover {
   justify-self: start;
 }
 
+.app-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: start;
+}
+
+.app-profile-avatar-link {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid #d2e0da;
+  background: #f3f8f5;
+  color: #1f3f34;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  text-decoration: none;
+  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.app-profile-avatar-link:hover {
+  transform: translateY(-1px);
+  border-color: #b7cbc3;
+  box-shadow: 0 8px 18px rgba(20, 58, 47, 0.14);
+}
+
+.app-profile-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.app-profile-avatar-fallback {
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .dashboard-shell {
   display: grid;
   gap: 14px;
@@ -446,6 +486,10 @@ a.card:hover {
   }
 
   .app-logout-form {
+    justify-self: end;
+  }
+
+  .app-header-actions {
     justify-self: end;
   }
 
