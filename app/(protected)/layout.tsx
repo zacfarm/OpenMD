@@ -69,6 +69,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
                 )}
               </Link>
             )}
+            <Link href="/settings/profile" className="app-nav-link">Profile</Link>
             {hasPermission(role, 'view_credentials') && normalizedRole !== 'credentialing' && (
               <Link href="/credentials" className="app-nav-link">Credentials</Link>
             )}
