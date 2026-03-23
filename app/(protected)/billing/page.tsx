@@ -74,6 +74,55 @@ async function submitClaim(formData: FormData) {
   redirect('/billing?success=Claim submitted successfully.')
 }
 
+async function postPayment(formData: FormData) {
+  'use server'
+
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  const { data: membership } = await supabase
+    .from('tenant_memberships')
+    .select('tenant_id,role')
+    .eq('user_id', user.id)
+    .limit(1)
+    .maybeSingle()
+
+  if (!membership || !hasPermission(membership.role, 'manage_billing')) {
+    redirect('/billing?error=You do not have permission to post payments.')
+  }
+
+  const claimId = String(formData.get('claimId') || '')
+  const amount = Number(formData.get('amount') || 0)
+  const checkNumber = String(formData.get('checkNumber') || '').trim() || null
+  const paymentDate = String(formData.get('paymentDate') || '').trim()
+
+  if (!claimId || amount <= 0) {
+    redirect('/billing?error=Enter a valid claim and amount to post a payment.')
+  }
+
+  const { error } = await supabase.from('insurance_claim_payments').insert({
+    tenant_id: membership.tenant_id,
+    claim_id: claimId,
+    amount: Number(amount.toFixed(2)),
+    payment_date: paymentDate || new Date().toISOString().slice(0, 10),
+    check_number: checkNumber,
+    posted_by: user.id,
+  })
+
+  if (error) {
+    redirect(`/billing?error=${encodeURIComponent(error.message)}`)
+  }
+
+  revalidatePath('/billing')
+  redirect('/billing?success=Payment posted successfully.')
+}
+
 export default async function BillingPage({
   searchParams,
 }: {
@@ -247,6 +296,47 @@ export default async function BillingPage({
           </p>
         )}
       </article>
+
+      {hasPermission(membership?.role, 'manage_billing') && (
+        <article className="card" style={{ padding: 18 }}>
+          <h2 style={{ marginTop: 0 }}>Payment posting</h2>
+          <p style={{ marginTop: 0, color: 'var(--muted)' }}>
+            Record a payment against an existing claim (visible only to your tenant).
+          </p>
+          <form action={postPayment} style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+            <label>
+              Claim
+              <select className="field" name="claimId" required defaultValue="">
+                <option value="" disabled>
+                  Select claim
+                </option>
+                {claims.map((claim) => (
+                  <option key={claim.id} value={claim.id}>
+                    {claim.patient_name} — {claim.member_id} ({claim.cpt_code})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Amount
+              <input className="field" name="amount" type="number" min="0" step="0.01" required />
+            </label>
+            <label>
+              Payment date
+              <input className="field" name="paymentDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
+            </label>
+            <label style={{ gridColumn: 'span 2' }}>
+              Check number
+              <input className="field" name="checkNumber" placeholder="Optional" />
+            </label>
+            <div style={{ display: 'flex', alignItems: 'end' }}>
+              <button className="btn btn-primary" type="submit">
+                Post payment
+              </button>
+            </div>
+          </form>
+        </article>
+      )}
 
       <article className="card" style={{ padding: 18 }}>
         <h2 style={{ marginTop: 0 }}>Recent claims</h2>
