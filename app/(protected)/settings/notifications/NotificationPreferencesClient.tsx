@@ -13,6 +13,7 @@ const EVENT_TYPES = [
   { key: 'marketplace_claimed',      label: 'Marketplace post claimed',     group: 'Marketplace' },
   { key: 'credential_reviewed',      label: 'Credential approved or denied', group: 'Credentials' },
   { key: 'credential_expiring',      label: 'Credential expiring soon',     group: 'Credentials' },
+  { key: 'credential_missing',       label: 'Provider missing active credentials', group: 'Credentials' },
   { key: 'credential_pending_review',label: 'New credential needs review',  group: 'Credentials' },
   { key: 'invite_accepted',          label: 'Team invite accepted',         group: 'Team' },
   { key: 'team_member_joined',       label: 'New team member joined',       group: 'Team' },

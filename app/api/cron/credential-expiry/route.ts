@@ -5,7 +5,8 @@ import { createClient } from '@supabase/supabase-js'
  * GET /api/cron/credential-expiry
  *
  * Calls notify_expiring_credentials() to insert in-app notifications
- * for credentials expiring in 30 or 7 days.
+ * for credentials expiring in 30 or 7 days and providers missing
+ * active approved credentials.
  */
 export async function GET() {
   const supabase = createClient(
