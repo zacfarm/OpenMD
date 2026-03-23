@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 async function claimPostedShift(formData: FormData) {  
   'use server'
 
-  const supabase = createSupabaseServerClient()  
+  const supabase = await createSupabaseServerClient()  
   const {  
     data: { user },  
   } = await supabase.auth.getUser()
@@ -30,7 +30,7 @@ async function claimPostedShift(formData: FormData) {
 }
 
 export default async function DashboardPage() {  
-  const supabase = createSupabaseServerClient()  
+  const supabase = await createSupabaseServerClient()  
   const {  
     data: { user }, 
   } = await supabase.auth.getUser()
