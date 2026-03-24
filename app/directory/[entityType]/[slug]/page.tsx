@@ -183,16 +183,17 @@ export default async function DirectoryProfilePage({
   params,
   searchParams,
 }: {
-  params: { entityType: string; slug: string }
-  searchParams: { providerSearch?: string; providerSort?: string; showAll?: string }
+  params: Promise<{ entityType: string; slug: string }>
+  searchParams: Promise<{ providerSearch?: string; providerSort?: string; showAll?: string }>
 }) {
+  const { entityType, slug } = await params
   const supabase = await createSupabaseServerClient()
 
   const { data: entity } = await supabase
     .from('directory_entities')
     .select('id,entity_type,tenant_id,parent_entity_id,slug,name,specialty,location,description,average_rating,rating_count')
-    .eq('entity_type', params.entityType)
-    .eq('slug', params.slug)
+    .eq('entity_type', entityType)
+    .eq('slug', slug)
     .single()
 
   if (!entity) notFound()
@@ -263,9 +264,10 @@ export default async function DirectoryProfilePage({
     )
   }
 
-  const providerSearch = searchParams.providerSearch?.trim() ?? ''
-  const providerSort = searchParams.providerSort?.trim() ?? 'most_reviewed'
-  const showAll = searchParams.showAll === '1'
+  const searchParamsData = await searchParams
+  const providerSearch = searchParamsData.providerSearch?.trim() ?? ''
+  const providerSort = searchParamsData.providerSort?.trim() ?? 'most_reviewed'
+  const showAll = searchParamsData.showAll === '1'
 
   let providerQuery = supabase
     .from('directory_entities')
