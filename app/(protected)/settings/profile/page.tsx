@@ -802,7 +802,7 @@ export default async function ProfileSettingsPage({
         </p>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
-          <a className="btn btn-secondary" href="/api/profile/export">Download account export</a>
+          <a className="btn btn-secondary" href="/api/profile/export">Download account export (CSV)</a>
         </div>
       </article>
 
@@ -986,7 +986,7 @@ export default async function ProfileSettingsPage({
                   {new Date(entry.created_at).toLocaleString()}
                 </p>
                 <p style={{ margin: '5px 0 0', color: 'var(--muted)', fontSize: 12 }}>
-                  {JSON.stringify(entry.metadata)}
+                  {JSON.stringify(entry.metadata).replace(/^{|}$/g, '')}
                 </p>
               </article>
             ))}
