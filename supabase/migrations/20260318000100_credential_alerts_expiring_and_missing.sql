@@ -4,7 +4,7 @@
 -- Updates notify_expiring_credentials() so daily cron can:
 -- 1) notify providers and credentialing staff of expiring credentials
 -- 2) notify credentialing staff when providers are missing active credentials
--- ============================================================
+
 
 create or replace function public.notify_expiring_credentials()
 returns integer
