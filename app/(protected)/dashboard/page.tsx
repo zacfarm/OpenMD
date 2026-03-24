@@ -52,6 +52,32 @@ export default async function DashboardPage() {
     : activeMembership?.tenants  
   const role = normalizeTenantRole(activeMembership?.role)
 
+  if (!activeMembership) {
+    return (
+      <section style={{ display: 'grid', gap: 14 }}>
+        <article className="card" style={{ padding: 20 }}>
+          <h1 style={{ marginTop: 0 }}>Dashboard</h1>
+          <p style={{ color: 'var(--red)' }}>
+            Error: You don't have a membership in any tenant. Please contact your administrator.
+          </p>
+        </article>
+      </section>
+    )
+  }
+
+  if (!role) {
+    return (
+      <section style={{ display: 'grid', gap: 14 }}>
+        <article className="card" style={{ padding: 20 }}>
+          <h1 style={{ marginTop: 0 }}>Dashboard</h1>
+          <p style={{ color: 'var(--red)' }}>
+            Error: Your role is not recognized ({activeMembership?.role}). Please contact your administrator.
+          </p>
+        </article>
+      </section>
+    )
+  }
+
   const [{ count: providerCount }, { count: bookingCount }, { count: unreadCount }, { count: claimsCount }] =  
     await Promise.all([  
       supabase.from('provider_profiles').select('id', { count: 'exact', head: true }),  
