@@ -63,7 +63,7 @@ export function SendInviteEmailButton({
         disabled={disabled || loading}
         style={{ padding: '6px 12px', fontSize: 12 }}
       >
-        {loading ? 'Sending...' : 'Send email'}
+        {loading ? 'Sending...' : 'Resend email'}
       </button>
     </div>
   )
