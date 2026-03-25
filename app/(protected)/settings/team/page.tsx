@@ -80,6 +80,43 @@ async function createInvite(formData: FormData) {
   redirect('/settings/team?success=Invite created successfully.')
 }
 
+async function expireInvite(formData: FormData) {
+  'use server'
+
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  const inviteId = String(formData.get('inviteId') || '').trim()
+  if (!inviteId) {
+    redirect('/settings/team?error=Invite ID is required.')
+  }
+
+  const { data: membership } = await supabase
+    .from('tenant_memberships')
+    .select('tenant_id,role')
+    .eq('user_id', user.id)
+    .limit(1)
+    .maybeSingle()
+
+  if (!membership || !hasPermission(membership.role, 'manage_team')) {
+    redirect('/settings/team?error=You do not have permission to expire invites.')
+  }
+
+  const { error } = await supabase.rpc('expire_tenant_invite', { invite_id_input: inviteId })
+  if (error) {
+    redirect(`/settings/team?error=${encodeURIComponent(error.message)}`)
+  }
+
+  revalidatePath('/settings/team')
+  redirect('/settings/team?success=Invite expired successfully.')
+}
+
 export default async function TeamSettingsPage({
   searchParams,
 }: {
@@ -112,7 +149,7 @@ export default async function TeamSettingsPage({
     membership
       ? supabase
           .from('tenant_invites')
-          .select('id,email,role,invite_token,status,expires_at')
+          .select('id,email,role,invite_token,status,created_at,opened_at,accepted_at,expires_at')
           .eq('tenant_id', membership.tenant_id)
           .order('created_at', { ascending: false })
       : Promise.resolve({ data: [] as never[] }),
@@ -130,6 +167,9 @@ export default async function TeamSettingsPage({
     role: string
     invite_token: string
     status: string
+    created_at: string
+    opened_at: string | null
+    accepted_at: string | null
     expires_at: string
   }>
   const membershipTenant = Array.isArray(membership?.tenants) ? membership?.tenants[0] : membership?.tenants
@@ -137,7 +177,8 @@ export default async function TeamSettingsPage({
   const actionError = resolvedSearchParams?.error || null
   const actionSuccess = resolvedSearchParams?.success || null
   const now = new Date()
-  const pendingInvites = invites.filter((invite) => invite.status !== 'accepted' && new Date(invite.expires_at) >= now)
+  const pendingInvites = invites.filter((invite) => invite.status === 'pending' && new Date(invite.expires_at) >= now)
+  const openedInvites = invites.filter((invite) => invite.status === 'opened' && new Date(invite.expires_at) >= now)
   const acceptedInvites = invites.filter((invite) => invite.status === 'accepted')
   const expiredInvites = invites.filter((invite) => invite.status !== 'accepted' && new Date(invite.expires_at) < now)
 
@@ -165,10 +206,13 @@ export default async function TeamSettingsPage({
     if (invite.status === 'accepted') {
       return { label: 'Accepted', color: 'var(--ok)', bg: 'rgba(11, 124, 69, 0.12)' }
     }
-    if (new Date(invite.expires_at) < now) {
+    if (new Date(invite.expires_at) < now || invite.status === 'expired') {
       return { label: 'Expired', color: 'var(--warning)', bg: 'rgba(180, 74, 46, 0.12)' }
     }
-    return { label: 'Pending', color: '#2f5d92', bg: 'rgba(45, 117, 190, 0.12)' }
+    if (invite.status === 'opened') {
+      return { label: 'Opened', color: '#7f5f00', bg: 'rgba(188, 141, 0, 0.16)' }
+    }
+    return { label: 'Sent', color: '#2f5d92', bg: 'rgba(45, 117, 190, 0.12)' }
   }
 
   return (
@@ -204,8 +248,12 @@ export default async function TeamSettingsPage({
             <p style={{ margin: '8px 0 0', fontWeight: 700 }}>{members.length}</p>
           </div>
           <div className="dashboard-mini-stat">
-            <p className="metric-label">Pending Invites</p>
+            <p className="metric-label">Sent Invites</p>
             <p style={{ margin: '8px 0 0', fontWeight: 700 }}>{pendingInvites.length}</p>
+          </div>
+          <div className="dashboard-mini-stat">
+            <p className="metric-label">Opened Invites</p>
+            <p style={{ margin: '8px 0 0', fontWeight: 700 }}>{openedInvites.length}</p>
           </div>
           <div className="dashboard-mini-stat">
             <p className="metric-label">Accepted Invites</p>
@@ -276,8 +324,12 @@ export default async function TeamSettingsPage({
           <h3 style={{ marginTop: 0, marginBottom: 8 }}>Invite Snapshot</h3>
           <div style={{ display: 'grid', gap: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: 'var(--muted)', fontSize: 14 }}>Pending</span>
+              <span style={{ color: 'var(--muted)', fontSize: 14 }}>Sent</span>
               <strong>{pendingInvites.length}</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: 'var(--muted)', fontSize: 14 }}>Opened</span>
+              <strong>{openedInvites.length}</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ color: 'var(--muted)', fontSize: 14 }}>Accepted</span>
@@ -402,8 +454,18 @@ export default async function TeamSettingsPage({
                         {invite.email}
                       </p>
                       <p style={{ margin: '3px 0 0', color: 'var(--muted)', fontSize: 13 }}>
-                        {getRoleLabel(invite.role)} • Expires {formatDateTime(invite.expires_at)}
+                        {getRoleLabel(invite.role)} • Sent {formatDateTime(invite.created_at)} • Expires {formatDateTime(invite.expires_at)}
                       </p>
+                      {invite.opened_at && (
+                        <p style={{ margin: '3px 0 0', color: 'var(--muted)', fontSize: 12 }}>
+                          Opened {formatDateTime(invite.opened_at)}
+                        </p>
+                      )}
+                      {invite.accepted_at && (
+                        <p style={{ margin: '3px 0 0', color: 'var(--muted)', fontSize: 12 }}>
+                          Accepted {formatDateTime(invite.accepted_at)}
+                        </p>
+                      )}
                     </div>
                     <span
                       style={{
@@ -433,13 +495,23 @@ export default async function TeamSettingsPage({
                     <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)', wordBreak: 'break-all', flex: 1 }}>
                       {inviteUrl}
                     </p>
-                    <SendInviteEmailButton
-                      email={invite.email}
-                      token={invite.invite_token}
-                      role={getRoleLabel(invite.role)}
-                      tenantName={membershipTenant?.name ?? 'OpenMD'}
-                      disabled={isAccepted || isExpired}
-                    />
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <SendInviteEmailButton
+                        email={invite.email}
+                        token={invite.invite_token}
+                        role={getRoleLabel(invite.role)}
+                        tenantName={membershipTenant?.name ?? 'OpenMD'}
+                        disabled={isAccepted || isExpired}
+                      />
+                      {!isAccepted && !isExpired && (
+                        <form action={expireInvite}>
+                          <input type="hidden" name="inviteId" value={invite.id} />
+                          <button className="btn btn-secondary" type="submit" style={{ padding: '6px 12px', fontSize: 12 }}>
+                            Expire
+                          </button>
+                        </form>
+                      )}
+                    </div>
                   </div>
                 </article>
               )

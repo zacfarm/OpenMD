@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { createSupabaseBrowserClient } from '@/lib/supabaseClient'
 import type { OrgType } from '@/lib/openmd'
@@ -15,6 +15,16 @@ export default function SignupPage() {
   const isInviteSignup = Boolean(inviteTokenFromQuery)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!inviteTokenFromQuery) return
+
+    void fetch('/api/invites/open', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inviteToken: inviteTokenFromQuery }),
+    })
+  }, [inviteTokenFromQuery])
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()

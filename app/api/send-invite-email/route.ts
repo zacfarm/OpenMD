@@ -50,13 +50,13 @@ export async function POST(req: Request) {
             </p>
 
             <p style="color: #999; font-size: 12px; margin-top: 24px;">
-              This link will expire in 14 days. If you have any questions, contact your workspace administrator.
+              This link will expire in 48 hours. If you have any questions, contact your workspace administrator.
             </p>
           </div>
         </body>
       </html>
     `
-    const textBody = `You have been invited to join ${tenantName} on OpenMD as a ${roleLabel}.\n\nUse this link to create your profile:\n${inviteUrl}\n\nThis link will expire in 14 days.`
+    const textBody = `You have been invited to join ${tenantName} on OpenMD as a ${roleLabel}.\n\nUse this link to create your profile:\n${inviteUrl}\n\nThis link will expire in 48 hours.`
 
     // Send email using configured service
     await sendEmailViaService(inviteEmail, subject, htmlBody, textBody)
