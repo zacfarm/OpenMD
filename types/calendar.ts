@@ -1,6 +1,6 @@
 export type CalendarViewMode = 'month' | 'week' | 'day'
 
-export type CalendarEventStatus = 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'
+export type CalendarEventStatus = 'pending' | 'started' | 'completed' | 'cancelled'
 
 export type CalendarProviderOption = {
   id: string
@@ -17,7 +17,8 @@ export type CalendarEventRecord = {
   case_identifier: string | null
   patient_display_name: string | null
   case_type: string | null
-  status: CalendarEventStatus
+  status: string | null
+  event_status: CalendarEventStatus;
   starts_at: string
   ends_at: string
   location: string | null
@@ -38,6 +39,29 @@ export type CalendarEventRecord = {
         specialty: string | null
       }[]
     | null
+}
+
+export type BookingRequestRecord = {
+    id: string  
+  requesting_tenant_id: string  
+  provider_id: string  
+  requested_start: string  
+  requested_end: string  
+  location: string | null  
+  notes: string | null  
+  status: 'accepted' | 'confirmed'; // Booking specific statuses  
+  provider_profiles:  
+    | {  
+        id: string  
+        display_name: string  
+        specialty: string | null  
+      }  
+    | {  
+        id: string  
+        display_name: string  
+        specialty: string | null  
+      }[]  
+    | null  
 }
 
 export type CalendarEventDTO = {
@@ -65,7 +89,7 @@ export type CalendarEventDTO = {
 
 export type CalendarFilters = {
   providerId?: string
-  status?: string
+  status?: CalendarEventStatus;
   practice?: string
   facility?: string
   from?: string
