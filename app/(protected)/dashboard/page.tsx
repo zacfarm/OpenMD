@@ -431,10 +431,10 @@ export default async function DashboardPage({
                   </div>
 
                   <div className="dashboard-case-actions">
-                    <a className="btn btn-primary" href="/calendar">
+                    <a className="btn btn-secondary" href="/calendar">
                       Open Calendar
                     </a>
-                    <a className="btn btn-primary" href={getCalendarBillingHref(event)}>
+                    <a className="btn btn-secondary" href={getCalendarBillingHref(event)}>
                       Billing
                     </a>
                   </div>
@@ -481,10 +481,10 @@ export default async function DashboardPage({
             <h2 style={{ marginTop: 0 }}>Provider quick actions</h2>
             <p style={{ marginTop: 0, color: 'var(--muted)' }}>Everything you need to stay booked and compliant.</p>
             <div style={{ display: 'grid', gap: 8 }}>
-              <Link href="/bookings" className="btn btn-primary">View my bookings</Link>
-              <Link href="/credentials" className="btn btn-primary">Update credentials</Link>
-              <Link href="/notifications" className="btn btn-primary">Check alerts</Link>
-              <Link href="/providers" className="btn btn-primary">Explore providers</Link>
+              <Link href="/bookings" className="btn btn-secondary">View my bookings</Link>
+              <Link href="/credentials" className="btn btn-secondary">Update credentials</Link>
+              <Link href="/notifications" className="btn btn-secondary">Check alerts</Link>
+              <Link href="/providers" className="btn btn-secondary">Explore providers</Link>
             </div>
           </article>
         </section>

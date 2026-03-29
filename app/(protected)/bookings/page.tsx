@@ -254,7 +254,7 @@ export default async function BookingsPage({
           {canClaimPost && (  
             <form action={claimMarketplacePost}>  
               <input type="hidden" name="postId" value={post.id} />  
-              <button className="btn btn-primary" type="submit">  
+              <button className="btn btn-secondary" type="submit">  
                 Claim  
               </button>  
             </form>  
@@ -270,7 +270,7 @@ export default async function BookingsPage({
           {isCreator && post.status !== 'closed' && hasPermission(currentUserRole, 'manage_bookings') && (  
             <form action={closeMarketplacePost}>  
               <input type="hidden" name="postId" value={post.id} />  
-              <button className="btn btn-primary" type="submit">  
+              <button className="btn btn-secondary" type="submit">  
                 Close  
               </button>  
             </form>  

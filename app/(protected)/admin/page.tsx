@@ -214,7 +214,7 @@ export default async function AdminPage() {
                       <option value="true">Active</option>
                       <option value="false">Inactive</option>
                     </select>
-                    <button className="btn btn-primary" type="submit">
+                    <button className="btn btn-secondary" type="submit">
                       Save
                     </button>
                   </form>
@@ -284,7 +284,7 @@ export default async function AdminPage() {
                     <option value="dismissed">Dismissed</option>
                   </select>
                   <input className="field" name="adminNotes" defaultValue={report.admin_notes ?? ''} placeholder="Admin notes" />
-                  <button className="btn btn-primary" type="submit">
+                  <button className="btn btn-secondary" type="submit">
                     Save
                   </button>
                 </div>

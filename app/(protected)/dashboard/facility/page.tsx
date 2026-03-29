@@ -136,7 +136,7 @@ export default async function FacilityDashboardPage() {
           </p>
         </div>
         <div className="dashboard-actions">
-          <Link className="btn btn-primary" href="/dashboard">
+          <Link className="btn btn-secondary" href="/dashboard">
             Back to dashboard
           </Link>
           <Link className="btn btn-primary" href="/billing">

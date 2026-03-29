@@ -58,7 +58,7 @@ export function SendInviteEmailButton({
       {error && <span style={{ fontSize: 12, color: 'var(--warning)' }}>{error}</span>}
       {success && <span style={{ fontSize: 12, color: 'var(--accent)' }}>✓ Sent</span>}
       <button
-        className="btn btn-primary"
+        className="btn btn-secondary"
         onClick={handleSend}
         disabled={disabled || loading}
         style={{ padding: '6px 12px', fontSize: 12 }}
