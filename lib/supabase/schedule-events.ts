@@ -1,17 +1,17 @@
 // lib/supabase/schedule-events.ts  
 import { createSupabaseServerClient } from '../supabaseServer';  
-import type { CalendarEventDTO, CalendarEventStatus, CalendarEventRecord } from '@/types/calendar'; 
+import type { CalendarEventDTO, CalendarEventStatus, CalendarEventRecord } from '@/types/calendar';  
 import type { Json } from '@/types/supabase';
 
+type ScheduleEventStatus = CalendarEventStatus;
+
  
-type ScheduleEventStatus = CalendarEventStatus; 
 type SingleProviderProfile = {  
   id: string;  
   display_name: string;  
   specialty: string | null;  
 };
 
- 
 function transformScheduleEventToDTO(dbData: CalendarEventRecord): CalendarEventDTO {  
   let patientDisplayName: string | null = null;  
   let billingClaimId: string | null = null;
@@ -27,10 +27,11 @@ function transformScheduleEventToDTO(dbData: CalendarEventRecord): CalendarEvent
   }
 
   let selectedProvider: SingleProviderProfile | null = null;  
- 
+  
   if (dbData.provider_profiles) {  
     if (Array.isArray(dbData.provider_profiles)) {  
       if (dbData.provider_profiles.length > 0) {  
+         
         selectedProvider = dbData.provider_profiles[0];  
       }  
     } else {  
@@ -40,11 +41,10 @@ function transformScheduleEventToDTO(dbData: CalendarEventRecord): CalendarEvent
 
   return {  
     id: dbData.id,  
-    source: 'schedule_event', 
+    source: 'schedule_event',  
     title: dbData.title ?? '',  
     start: dbData.starts_at,  
     end: dbData.ends_at,  
-      
     status: dbData.event_status, 
     caseType: dbData.case_type ?? null,  
     caseIdentifier: dbData.case_identifier ?? null,  
@@ -80,7 +80,7 @@ export async function updateScheduleEventStatus(
       created_by, updated_by, case_identifier, case_type,  
       status, event_status, color_token, billing_claim_id, patient_display_name,  
       provider_profiles ( id, display_name, specialty )  
-    `)  
+    `) 
     .single();
 
   if (error) {  
@@ -95,7 +95,7 @@ export async function updateScheduleEventStatus(
   return transformScheduleEventToDTO(dbData as CalendarEventRecord);  
 }
 
- 
+  
 export async function getScheduleEvents(filters: any): Promise<CalendarEventDTO[]> {  
     const supabase = await createSupabaseServerClient();
 
@@ -105,15 +105,13 @@ export async function getScheduleEvents(filters: any): Promise<CalendarEventDTO[
       created_by, updated_by, case_identifier, case_type,  
       status, event_status, color_token, billing_claim_id, patient_display_name,  
       provider_profiles ( id, display_name, specialty )  
-    `);
-
-  
+    `);  
     if (filters.status) {  
         query = query.eq('event_status', filters.status);  
     }  
     if (filters.from) { query = query.gte('starts_at', filters.from); }  
     if (filters.to) { query = query.lte('ends_at', filters.to); }  
-  
+   
 
     const { data, error } = await query;
 
@@ -124,6 +122,7 @@ export async function getScheduleEvents(filters: any): Promise<CalendarEventDTO[
 
     if (!data) {  
         return [];  
-    }   
+    }  
+   
     return data.map(record => transformScheduleEventToDTO(record as CalendarEventRecord));  
 }  
