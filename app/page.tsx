@@ -143,7 +143,7 @@ export default async function Home({
               </p>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <Link className="btn btn-secondary" href="/login">
+              <Link className="btn btn-primary" href="/login">
                 Login
               </Link>
               <Link className="btn btn-primary" href="/signup">

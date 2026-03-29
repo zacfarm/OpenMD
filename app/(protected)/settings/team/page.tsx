@@ -506,7 +506,7 @@ export default async function TeamSettingsPage({
                       {!isAccepted && !isExpired && (
                         <form action={expireInvite}>
                           <input type="hidden" name="inviteId" value={invite.id} />
-                          <button className="btn btn-secondary" type="submit" style={{ padding: '6px 12px', fontSize: 12 }}>
+                          <button className="btn btn-primary" type="submit" style={{ padding: '6px 12px', fontSize: 12 }}>
                             Expire
                           </button>
                         </form>

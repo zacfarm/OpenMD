@@ -205,7 +205,7 @@ export function NotificationsClient({
             Preferences
           </a>
           {unreadCount > 0 && (
-            <button className="btn btn-secondary" onClick={handleMarkAllRead}>
+            <button className="btn btn-primary" onClick={handleMarkAllRead}>
               Mark all read
             </button>
           )}
@@ -221,7 +221,7 @@ export function NotificationsClient({
             <button
               key={opt.value}
               onClick={() => dispatch({ type: 'SET_FILTER', filter: opt.value })}
-              className="btn btn-secondary"
+              className="btn btn-primary"
               style={{
                 fontSize: 13,
                 padding: '4px 12px',
@@ -293,7 +293,7 @@ export function NotificationsClient({
                 {item.action_url && (
                   <a
                     href={item.action_url}
-                    className="btn btn-secondary"
+                    className="btn btn-primary"
                     style={{ fontSize: 12, padding: '4px 10px' }}
                   >
                     View
@@ -301,7 +301,7 @@ export function NotificationsClient({
                 )}
                 {item.status === 'unread' && (
                   <button
-                    className="btn btn-secondary"
+                    className="btn btn-primary"
                     style={{ fontSize: 12, padding: '4px 10px' }}
                     onClick={() => handleMarkRead(item.id)}
                   >

@@ -107,7 +107,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
               )}
             </Link>
             <form action="/logout" method="post" className="app-logout-form">
-              <button className="btn btn-secondary" type="submit">
+              <button className="btn btn-primary" type="submit">
                 Logout
               </button>
             </form>

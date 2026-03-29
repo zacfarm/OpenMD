@@ -802,7 +802,7 @@ export default async function ProfileSettingsPage({
         </p>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
-          <a className="btn btn-secondary" href="/api/profile/export">Download account export (CSV)</a>
+          <a className="btn btn-primary" href="/api/profile/export">Download account export (CSV)</a>
         </div>
       </article>
 
@@ -891,7 +891,7 @@ export default async function ProfileSettingsPage({
         )}
 
         <form action={revokeOtherSessions}>
-          <button className="btn btn-secondary" type="submit">Sign out other sessions</button>
+          <button className="btn btn-primary" type="submit">Sign out other sessions</button>
         </form>
       </article>
 

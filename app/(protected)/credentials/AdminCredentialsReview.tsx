@@ -242,14 +242,14 @@ function CredentialReviewRow({
             {cred.status.toUpperCase()}
           </span>
           <button
-            className="btn btn-secondary"
+            className="btn btn-primary"
             style={{ fontSize: 12, padding: '4px 10px' }}
             onClick={() => onView(cred.storage_path)}
           >
             View doc
           </button>
           <button
-            className="btn btn-secondary"
+            className="btn btn-primary"
             style={{ fontSize: 12, padding: '4px 10px' }}
             onClick={() => setExpanded((o) => !o)}
           >
@@ -295,7 +295,7 @@ function CredentialReviewRow({
               {busy ? 'Saving…' : '✗ Deny'}
             </button>
             <button
-              className="btn btn-secondary"
+              className="btn btn-primary"
               disabled={busy}
               onClick={() => onReview(cred.id, 'expired', notes)}
             >

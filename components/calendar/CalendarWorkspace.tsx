@@ -302,7 +302,7 @@ export default function CalendarWorkspace({
                   {selectedEvent.caseType || 'Case'} · <span className="capitalize">{selectedEvent.status.replace(/_/g, ' ')}</span>  
                 </p>  
               </div>  
-              <button type="button" className="btn btn-secondary" onClick={() => setSelectedEvent(null)}>  
+              <button type="button" className="btn btn-primary" onClick={() => setSelectedEvent(null)}>  
                 Close  
               </button>  
             </div>

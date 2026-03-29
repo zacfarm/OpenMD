@@ -40,7 +40,7 @@ export function EventStatusButtons({ eventId, currentStatus, onStatusUpdated }: 
       disabled = true;  
       className = `${className} btn-primary`;  
     } else {  
-      className = `${className} btn-secondary`;  
+      className = `${className} btn-primary`;  
     }
 
    

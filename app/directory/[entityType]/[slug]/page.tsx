@@ -164,7 +164,7 @@ function ReviewList({
                     </option>
                   ))}
                 </select>
-                <button className="btn btn-secondary" type="submit">
+                <button className="btn btn-primary" type="submit">
                   Report review
                 </button>
               </div>
@@ -367,7 +367,7 @@ export default async function DirectoryProfilePage({
             <option value="top_rated">Top rated</option>
             <option value="name">Name</option>
           </select>
-          <button className="btn btn-secondary" type="submit">
+          <button className="btn btn-primary" type="submit">
             Update
           </button>
         </form>

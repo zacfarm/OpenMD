@@ -250,11 +250,11 @@ function CredentialRow({ cred }: { cred: Credential }) {
           }}>
             {cred.status.toUpperCase()}
           </span>
-          <button className="btn btn-secondary" onClick={viewDocument} style={{ fontSize: 12, padding: '4px 10px' }}>
+          <button className="btn btn-primary" onClick={viewDocument} style={{ fontSize: 12, padding: '4px 10px' }}>
             View
           </button>
           <button
-            className="btn btn-secondary"
+            className="btn btn-primary"
             onClick={() => setOpen((o) => !o)}
             style={{ fontSize: 12, padding: '4px 10px' }}
           >

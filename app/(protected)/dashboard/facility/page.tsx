@@ -136,7 +136,7 @@ export default async function FacilityDashboardPage() {
           </p>
         </div>
         <div className="dashboard-actions">
-          <Link className="btn btn-secondary" href="/dashboard">
+          <Link className="btn btn-primary" href="/dashboard">
             Back to dashboard
           </Link>
           <Link className="btn btn-primary" href="/billing">
@@ -223,9 +223,9 @@ export default async function FacilityDashboardPage() {
           </div>
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
-            <Link className="btn btn-secondary" href="/providers">Review providers</Link>
-            <Link className="btn btn-secondary" href="/bookings">Open bookings</Link>
-            <Link className="btn btn-secondary" href="/notifications">View alerts</Link>
+            <Link className="btn btn-primary" href="/providers">Review providers</Link>
+            <Link className="btn btn-primary" href="/bookings">Open bookings</Link>
+            <Link className="btn btn-primary" href="/notifications">View alerts</Link>
           </div>
         </article>
       </section>

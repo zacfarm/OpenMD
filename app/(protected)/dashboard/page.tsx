@@ -90,7 +90,7 @@ export default async function DashboardPage({
       ? await getCalendarEvents(supabase, calendarAccess, {
           ...getDashboardCaseRange(caseWindow),
         }).then((events) =>
-          events.filter((event) => event.status === 'scheduled' || event.status === 'confirmed' || event.status === 'in_progress'),
+          events.filter((event) => event.status === 'pending' || event.status === 'started' || event.status === 'completed' || event.status === 'cancelled' || event.status === 'completed'),
         )
       : []
 
@@ -272,7 +272,7 @@ export default async function DashboardPage({
             View notifications
           </Link>
           {hasPermission(role, 'view_bookings') && (
-            <Link className="btn btn-secondary" href="/bookings">
+            <Link className="btn btn-primary" href="/bookings">
               Open bookings
             </Link>
           )}
@@ -324,9 +324,9 @@ export default async function DashboardPage({
               </article>
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
-              <Link href="/settings/team" className="btn btn-secondary">Manage team</Link>
-              <Link href="/billing" className="btn btn-secondary">Review billing</Link>
-              <Link href="/providers" className="btn btn-secondary">Provider directory</Link>
+              <Link href="/settings/team" className="btn btn-primary">Manage team</Link>
+              <Link href="/billing" className="btn btn-primary">Review billing</Link>
+              <Link href="/providers" className="btn btn-primary">Provider directory</Link>
             </div>
           </article>
 
@@ -369,10 +369,10 @@ export default async function DashboardPage({
             </div>
 
             <div className="dashboard-case-window">
-              <a className={`btn ${caseWindow === 'today' ? 'btn-primary' : 'btn-secondary'}`} href="/dashboard?caseWindow=today">
+              <a className={`btn ${caseWindow === 'today' ? 'btn-primary' : 'primary'}`} href="/dashboard?caseWindow=today">
                 Today
               </a>
-              <a className={`btn ${caseWindow === 'month' ? 'btn-primary' : 'btn-secondary'}`} href="/dashboard?caseWindow=month">
+              <a className={`btn ${caseWindow === 'month' ? 'btn-primary' : 'btn-primary'}`} href="/dashboard?caseWindow=month">
                 This Month
               </a>
             </div>
@@ -431,10 +431,10 @@ export default async function DashboardPage({
                   </div>
 
                   <div className="dashboard-case-actions">
-                    <a className="btn btn-secondary" href="/calendar">
+                    <a className="btn btn-primary" href="/calendar">
                       Open Calendar
                     </a>
-                    <a className="btn btn-secondary" href={getCalendarBillingHref(event)}>
+                    <a className="btn btn-primary" href={getCalendarBillingHref(event)}>
                       Billing
                     </a>
                   </div>
@@ -481,10 +481,10 @@ export default async function DashboardPage({
             <h2 style={{ marginTop: 0 }}>Provider quick actions</h2>
             <p style={{ marginTop: 0, color: 'var(--muted)' }}>Everything you need to stay booked and compliant.</p>
             <div style={{ display: 'grid', gap: 8 }}>
-              <Link href="/bookings" className="btn btn-secondary">View my bookings</Link>
-              <Link href="/credentials" className="btn btn-secondary">Update credentials</Link>
-              <Link href="/notifications" className="btn btn-secondary">Check alerts</Link>
-              <Link href="/providers" className="btn btn-secondary">Explore providers</Link>
+              <Link href="/bookings" className="btn btn-primary">View my bookings</Link>
+              <Link href="/credentials" className="btn btn-primary">Update credentials</Link>
+              <Link href="/notifications" className="btn btn-primary">Check alerts</Link>
+              <Link href="/providers" className="btn btn-primary">Explore providers</Link>
             </div>
           </article>
         </section>

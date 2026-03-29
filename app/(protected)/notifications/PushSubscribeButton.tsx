@@ -105,12 +105,12 @@ export function PushSubscribeButton() {
           Push notifications are blocked. Enable them in your browser&apos;s site settings and reload.
         </p>
       ) : status === 'subscribed' ? (
-        <button className="btn btn-secondary" onClick={handleUnsubscribe}>
+        <button className="btn btn-primary" onClick={handleUnsubscribe}>
           Disable push notifications
         </button>
       ) : (
         <button
-          className="btn btn-secondary"
+          className="btn btn-primary"
           onClick={handleSubscribe}
           disabled={status === 'loading'}
         >

@@ -162,7 +162,7 @@ export default async function ProvidersPage() {
                 <input className="field" type="time" name="startTime" required />
                 <input className="field" type="time" name="endTime" required />
                 <input className="field" name="location" placeholder="Location" />
-                <button className="btn btn-secondary" type="submit">
+                <button className="btn btn-primary" type="submit">
                   Save availability
                 </button>
               </form>
@@ -173,7 +173,7 @@ export default async function ProvidersPage() {
                 <input className="field" type="datetime-local" name="startsAt" required />
                 <input className="field" type="datetime-local" name="endsAt" required />
                 <input className="field" name="reason" placeholder="Reason" />
-                <button className="btn btn-secondary" type="submit">
+                <button className="btn btn-primary" type="submit">
                   Add block
                 </button>
               </form>
