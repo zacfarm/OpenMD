@@ -91,7 +91,7 @@ function CalendarEventTile({ event }: { event: CalendarUIEvent }) {
         {event.resource.caseIdentifier && <span>Case {event.resource.caseIdentifier}</span>}
       </div>
       <strong>{patientOrTitle}</strong>
-      {event.resource.caseType && <span>{event.resource.caseType}</span>}
+      {event.resource.procedureType?.name ? <span>{event.resource.procedureType.name}</span> : event.resource.caseType && <span>{event.resource.caseType}</span>}
       {event.resource.provider?.name && <span>{event.resource.provider.name}</span>}
       {orgLabel && <span>{orgLabel}</span>}
     </div>
@@ -250,7 +250,7 @@ export default function CalendarWorkspace({
               <div>
                 <h3 style={{ margin: 0 }}>{selectedEvent.patientDisplayName || selectedEvent.title}</h3>
                 <p className="section-subtitle">
-                  {selectedEvent.caseType || 'Case'} · {selectedEvent.status.replace(/_/g, ' ')}
+                  {(selectedEvent.procedureType?.name || selectedEvent.caseType || 'Procedure')} · {selectedEvent.status.replace(/_/g, ' ')}
                 </p>
               </div>
               <button className="btn btn-secondary" type="button" onClick={() => setSelectedEvent(null)}>

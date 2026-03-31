@@ -95,7 +95,12 @@ export default async function DashboardPage({
       : []
 
   const [{ count: providerCount }, { count: bookingCount }, { count: unreadCount }, { count: claimsCount }, { count: teamCount }, { count: openMarketplaceCount }] = await Promise.all([
-    supabase.from('provider_profiles').select('id', { count: 'exact', head: true }),
+    activeMembership
+      ? supabase
+          .from('provider_profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('practice_tenant_id', activeMembership.tenant_id)
+      : Promise.resolve({ count: 0 } as { count: number }),
     activeMembership
       ? supabase
           .from('booking_requests')
@@ -398,7 +403,7 @@ export default async function DashboardPage({
                   <div className="dashboard-case-primary">
                     <strong>{event.patientDisplayName || event.title}</strong>
                     <span>
-                      {event.caseIdentifier ? `Case ${event.caseIdentifier}` : event.caseType || 'Open case'}
+                      {event.caseIdentifier ? `Case ${event.caseIdentifier}` : event.procedureType?.name || event.caseType || 'Open case'}
                     </span>
                     {(event.practiceName || event.facilityName) && (
                       <span>{event.practiceName || event.facilityName}</span>
@@ -427,7 +432,7 @@ export default async function DashboardPage({
 
                   <div className="dashboard-case-meta">
                     <strong>{event.location || 'No location'}</strong>
-                    <span>{event.caseType || 'Case'}</span>
+                    <span>{event.procedureType?.name || event.caseType || 'Procedure'}</span>
                   </div>
 
                   <div className="dashboard-case-actions">
