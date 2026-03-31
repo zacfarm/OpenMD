@@ -26,7 +26,7 @@ export type CalendarEventRecord = {
   facility_name: string | null
   notes: string | null
   color_token: string | null
-  metadata: Record<string, unknown>
+  metadata: Record<string, unknown> | null
   provider_profiles:
     | {
         id: string

@@ -1,14 +1,12 @@
- 
+// components/calendar-workspace.tsx  
 'use client'
 
-import { useEffect, useState, useMemo, useCallback } from 'react'
-
+import { useEffect, useState, useMemo, useCallback } from 'react'  
 import {  
   Calendar,  
   Views,  
   dateFnsLocalizer,  
-} from 'react-big-calendar'
-
+} from 'react-big-calendar'  
 import {  
   endOfDay,  
   endOfMonth,  
@@ -21,11 +19,12 @@ import {
   startOfWeek,  
 } from 'date-fns'
 
-
 import { getCalendarBillingHref, getCalendarEventColor } from '@/lib/calendar'  
-import type { CalendarEventDTO, CalendarProviderOption, CalendarViewMode } from '@/types/calendar'
+import type { CalendarEventDTO, CalendarProviderOption, CalendarViewMode } from '@/types/calendar'  
 import type { CalendarEventStatus } from '@/types/calendar';
-import { EventStatusButtons } from '@/components/event-status-buttons';
+
+import { EventStatusButtons } from '@/components/event-status-buttons';  
+import { CreateEventModal } from '@/components/create-event-modal';
 
 
 const localizer = dateFnsLocalizer({  
@@ -92,14 +91,15 @@ function formatTimeRange(start: Date, end: Date) {
   return `${format(start, 'p')} - ${format(end, 'p')}`  
 }
 
-function formatStatus(status: CalendarEventStatus): string { 
-  if (!status) return ''; 
+function formatStatus(status: CalendarEventStatus): string {  
+  if (!status) return '';  
   return status  
     .replace(/_/g, ' ')  
     .split(' ')  
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))  
     .join(' ');  
 }
+
 
 export default function CalendarWorkspace({  
   initialEvents,  
@@ -117,10 +117,13 @@ export default function CalendarWorkspace({
   const [facility, setFacility] = useState('')  
   const [loading, setLoading] = useState(false)  
   const [refreshKey, setRefreshKey] = useState(0);
- 
+
+  
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
   const loadEvents = useCallback(async () => {  
     setLoading(true);  
-    const controller = new AbortController(); 
+    const controller = new AbortController();  
     const range = getRange(currentDate, currentView);  
     const params = new URLSearchParams({  
       from: range.from,  
@@ -135,7 +138,7 @@ export default function CalendarWorkspace({
     try {  
       const response = await fetch(`/api/calendar/events?${params.toString()}`, {  
         signal: controller.signal,  
-        cache: 'no-store',  
+        cache: 'no-store',
       });
 
       if (!response.ok) {  
@@ -147,7 +150,6 @@ export default function CalendarWorkspace({
       setEvents(payload.events);  
     } catch (error) {  
       if (error instanceof DOMException && error.name === 'AbortError') {  
-        // Fetch was intentionally aborted  
         return;  
       }  
       console.error('Error loading events:', error);  
@@ -155,7 +157,6 @@ export default function CalendarWorkspace({
       setLoading(false);  
     }
 
-     
     return controller;
 
   }, [  
@@ -166,39 +167,41 @@ export default function CalendarWorkspace({
     practice,  
     providerId,  
     filterStatus,  
-    refreshKey, 
-    setLoading, 
-    setEvents, 
-    getRange  
+    refreshKey,
+    setLoading,  
+    setEvents  
   ]);
 
-  
+
   useEffect(() => {  
-    const controllerPromise = loadEvents(); 
-    let currentController: AbortController | null = null;
+    const controllerPromise = loadEvents();  
+    let currentController: AbortController | undefined = undefined;
 
     controllerPromise.then(controller => {  
-        if (controller) {  
-            currentController = controller;  
-        }  
+        currentController = controller;  
     }).catch(err => {  
         console.error("Error during initial loadEvents call:", err);  
     });
 
-    return () => {   
+    return () => {  
       if (currentController) {  
           currentController.abort();  
       }  
     };  
-  }, [loadEvents]);
+  }, [loadEvents, refreshKey]);
 
 
   const calendarEvents = useMemo(() => toCalendarEvents(events), [events]);
 
   const handleEventStatusUpdated = (updatedEvent: CalendarEventDTO) => {  
     setSelectedEvent(updatedEvent);  
-    setRefreshKey(prev => prev + 1);  
+    setRefreshKey(prev => prev + 1); 
   };
+
+  const handleNewEventCreated = (newEvent: CalendarEventDTO) => {  
+    setRefreshKey(prev => prev + 1); 
+  };
+
 
   return (  
     <article className="card" style={{ padding: 18 }}>  
@@ -211,7 +214,15 @@ export default function CalendarWorkspace({
               : `Operational calendar for ${role ?? 'your role'} with provider, status, and facility filters.`}  
           </p>  
         </div>  
-        {loading && <div className="eyebrow">Refreshing events</div>}  
+        <div className="flex items-center gap-2"> {}  
+          {loading && <div className="eyebrow">Refreshing events</div>}  
+          <button  
+            className="btn btn-primary"  
+            onClick={() => setShowCreateModal(true)}
+          >  
+            Create New Event  
+          </button>  
+        </div>  
       </div>
 
       <div className="calendar-filters">  
@@ -231,8 +242,9 @@ export default function CalendarWorkspace({
 
         <label className="calendar-filter">  
           Status  
-          <select className="field" value={filterStatus} onChange={(event) => setFilterStatus(event.target.value as typeof filterStatus)}>  
+          <select className="field" value={filterStatus} onChange={(event) => setFilterStatus(event.target.value as CalendarEventStatus)}>  
             <option value="">All statuses</option>  
+            {}  
             <option value="pending">Pending</option>  
             <option value="started">Started</option>  
             <option value="completed">Completed</option>  
@@ -299,10 +311,10 @@ export default function CalendarWorkspace({
               <div>  
                 <h3 style={{ margin: 0 }}>{selectedEvent.patientDisplayName || selectedEvent.title}</h3>  
                 <p className="section-subtitle">  
-                  {selectedEvent.caseType || 'Case'} · <span className="capitalize">{selectedEvent.status.replace(/_/g, ' ')}</span>  
+                  {selectedEvent.caseType || 'Case'} · <span>{formatStatus(selectedEvent.status)}</span>  
                 </p>  
               </div>  
-              <button type="button" className="btn btn-secondary" onClick={() => setSelectedEvent(null)}>  
+              <button type="button" className="btn btn-primary" onClick={() => setSelectedEvent(null)}>  
                 Close  
               </button>  
             </div>
@@ -337,7 +349,7 @@ export default function CalendarWorkspace({
               </div>  
               <div>  
                 <p className="calendar-detail-label">Status</p>  
-                <p className="capitalize">{selectedEvent.status.replace(/_/g, ' ')}</p>  
+                <p>{formatStatus(selectedEvent.status)}</p>  
               </div>  
             </div>
 
@@ -356,8 +368,6 @@ export default function CalendarWorkspace({
                 <p style={{ marginTop: 0 }}>{selectedEvent.notes}</p>  
               </div>  
             )}
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}></div>
 
             <div className="mt-6 mb-4">  
                 <h4 className="text-md font-medium mb-2">Change Status:</h4>  
@@ -379,7 +389,16 @@ export default function CalendarWorkspace({
             </div>  
           </div>  
         </div>  
-      )}  
+      )}
+
+      {}  
+      <CreateEventModal  
+        isOpen={showCreateModal}  
+        onClose={() => setShowCreateModal(false)}  
+        onEventCreated={handleNewEventCreated}  
+        providers={providers}  
+       
+      />  
     </article>  
   )  
-} 
+}  

@@ -12,7 +12,7 @@ type SingleProviderProfile = {
   specialty: string | null;  
 };
 
-function transformScheduleEventToDTO(dbData: CalendarEventRecord): CalendarEventDTO {  
+export function transformScheduleEventToDTO(dbData: CalendarEventRecord): CalendarEventDTO {  
   let patientDisplayName: string | null = null;  
   let billingClaimId: string | null = null;
 
@@ -93,6 +93,50 @@ export async function updateScheduleEventStatus(
 
  
   return transformScheduleEventToDTO(dbData as CalendarEventRecord);  
+}
+
+type NewScheduleEventInput = {  
+  tenant_id: string;  
+  provider_id: string;  
+  title: string;  
+  starts_at: string;  
+  ends_at: string;  
+  location: string | null;  
+  case_type: string | null;  
+  case_identifier: string | null;  
+  patient_display_name: string | null;  
+  notes: string | null;  
+  color_token: string | null;  
+  billing_claim_id: string | null;  
+  event_status: CalendarEventStatus;  
+  created_by: string;  
+  updated_by: string;    
+};
+
+export async function createScheduleEvent(input: NewScheduleEventInput): Promise<CalendarEventDTO | null> {
+  const supabase = await createSupabaseServerClient();
+
+  const { data: newEvent, error: insertError } = await supabase  
+    .from('schedule_events')  
+    .insert(input)  
+    .select(`  
+      id, tenant_id, provider_id, title, starts_at, ends_at, location,  
+      practice_name, facility_name, notes, metadata, created_at, updated_at,  
+      created_by, updated_by, case_identifier, case_type,  
+      status, event_status, color_token, billing_claim_id, patient_display_name,  
+      provider_profiles ( id, display_name, specialty )  
+    `)  
+    .single(); // Use .single() as we're inserting one record
+
+  if (insertError) {  
+    console.error('Error inserting new schedule event:', insertError);  
+    throw new Error(`Failed to create event: ${insertError.message}`);  
+  }  
+  if (!newEvent) {  
+    return null; // Should not happen with .single() on successful insert  
+  }
+
+  return transformScheduleEventToDTO(newEvent as CalendarEventRecord);  
 }
 
   
