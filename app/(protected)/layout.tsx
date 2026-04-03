@@ -87,15 +87,19 @@ export default async function ProtectedLayout({
           </div>
 
           <nav className="app-nav" aria-label="Primary">
-            <Link href="/dashboard" className="app-nav-link">
-              Dashboard
-            </Link>
-            {hasPermission(role, "view_bookings") &&
-              normalizedRole !== "billing" && (
-                <Link href="/bookings" className="app-nav-link">
-                  Bookings
-                </Link>
-              )}
+            <Link href="/dashboard" className="app-nav-link">Dashboard</Link>
+            {hasPermission(role, 'view_bookings') && normalizedRole !== 'billing' && (
+              <details className="app-nav-dropdown">
+                <summary className="app-nav-link">Scheduling</summary>
+                <div className="app-nav-dropdown-menu">
+                  <Link href="/bookings" className="app-nav-dropdown-link">Global Marketplace</Link>
+                  <Link href="/schedule-cases" className="app-nav-dropdown-link">Scheduled Cases</Link>
+                  {(normalizedRole === 'admin' || normalizedRole === 'facility_manager' || normalizedRole === 'credentialing') && (
+                    <Link href="/scheduling/manage" className="app-nav-dropdown-link">Manage</Link>
+                  )}
+                </div>
+              </details>
+            )}
             {hasPermission(role, "view_bookings") && (
               <Link href="/calendar" className="app-nav-link">
                 Calendar

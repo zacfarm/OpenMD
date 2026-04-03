@@ -5,6 +5,11 @@ import type {
   CalendarEventRecord,
   CalendarFilters,
   CalendarProviderOption,
+  ScheduleDocumentTypeOption,
+  ScheduleInsuranceOption,
+  ScheduleProcedureTypeOption,
+  ScheduleLocationOption,
+  ScheduleCaseDTO,
 } from '@/types/calendar'
 
 const STATUS_COLOR_MAP: Record<string, string> = {
@@ -91,6 +96,113 @@ export async function getCalendarProviderOptions(
   )
 }
 
+export async function getScheduleLocationOptions(
+  supabase: Awaited<ReturnType<typeof import('./supabaseServer').createSupabaseServerClient>>,
+  tenantId: string | null,
+) {
+  if (!tenantId) return []
+
+  const { data } = await supabase
+    .from('tenant_schedule_locations')
+    .select('id,name,address_line_1,city,state,zip')
+    .eq('tenant_id', tenantId)
+    .eq('is_active', true)
+    .order('name', { ascending: true })
+
+  return ((data ?? []) as Array<{ id: string; name: string; address_line_1: string; city: string; state: string; zip: string }>).map(
+    (location) =>
+      ({
+        id: location.id,
+        label: `${location.name} · ${location.city}, ${location.state}`,
+        addressLine1: location.address_line_1,
+        city: location.city,
+        state: location.state,
+        zip: location.zip,
+      }) satisfies ScheduleLocationOption,
+  )
+}
+
+export async function getScheduleInsuranceOptions(
+  supabase: Awaited<ReturnType<typeof import('./supabaseServer').createSupabaseServerClient>>,
+  tenantId: string | null,
+) {
+  if (!tenantId) return []
+
+  const { data } = await supabase
+    .from('tenant_schedule_insurance_companies')
+    .select('id,name,payer_code,address_line_1,city,state,zip,network_status')
+    .eq('tenant_id', tenantId)
+    .eq('is_active', true)
+    .order('name', { ascending: true })
+
+  return ((data ?? []) as Array<{
+    id: string
+    name: string
+    payer_code: string | null
+    address_line_1: string | null
+    city: string | null
+    state: string | null
+    zip: string | null
+    network_status: 'in_network' | 'out_of_network' | null
+  }>).map(
+    (company) =>
+      ({
+        id: company.id,
+        label: company.name,
+        payerCode: company.payer_code,
+        addressLine1: company.address_line_1,
+        city: company.city,
+        state: company.state,
+        zip: company.zip,
+        networkStatus: company.network_status,
+      }) satisfies ScheduleInsuranceOption,
+  )
+}
+
+export async function getScheduleProcedureTypeOptions(
+  supabase: Awaited<ReturnType<typeof import('./supabaseServer').createSupabaseServerClient>>,
+  tenantId: string | null,
+) {
+  if (!tenantId) return []
+
+  const { data } = await supabase
+    .from('tenant_schedule_procedure_types')
+    .select('id,name')
+    .eq('tenant_id', tenantId)
+    .eq('is_active', true)
+    .order('name', { ascending: true })
+
+  return ((data ?? []) as Array<{ id: string; name: string }>).map(
+    (procedureType) =>
+      ({
+        id: procedureType.id,
+        label: procedureType.name,
+      }) satisfies ScheduleProcedureTypeOption,
+  )
+}
+
+export async function getScheduleDocumentTypeOptions(
+  supabase: Awaited<ReturnType<typeof import('./supabaseServer').createSupabaseServerClient>>,
+  tenantId: string | null,
+) {
+  if (!tenantId) return []
+
+  const { data } = await supabase
+    .from('tenant_schedule_document_types')
+    .select('id,name')
+    .eq('tenant_id', tenantId)
+    .eq('is_active', true)
+    .order('name', { ascending: true })
+
+  return ((data ?? []) as Array<{ id: string; name: string }>).map(
+    (documentType) =>
+      ({
+        id: documentType.id,
+        label: documentType.name,
+      }) satisfies ScheduleDocumentTypeOption,
+  )
+}
+
 export async function getCalendarEvents(
   supabase: Awaited<ReturnType<typeof import('./supabaseServer').createSupabaseServerClient>>,
   access: CalendarAccessContext,
@@ -108,7 +220,7 @@ export async function getCalendarEvents(
   let scheduleQuery = supabase
     .from('schedule_events')
     .select(
-      'id,tenant_id,provider_id,billing_claim_id,title,case_identifier,patient_display_name,case_type,status,starts_at,ends_at,location,practice_name,facility_name,notes,color_token,metadata,provider_profiles(id,display_name,specialty)',
+      'id,tenant_id,provider_id,billing_claim_id,title,case_identifier,patient_display_name,patient_first_name,patient_last_name,patient_address_line_1,patient_city,patient_state,patient_zip,patient_sex,visit_type,case_type,status,starts_at,ends_at,location,practice_name,facility_name,notes,color_token,metadata,provider_profiles(id,display_name,specialty),tenant_schedule_locations(id,name,address_line_1,city,state,zip),tenant_schedule_insurance_companies(id,name,payer_code,address_line_1,city,state,zip,network_status),tenant_schedule_procedure_types(id,name)',
     )
     .eq('tenant_id', access.tenantId)
     .order('starts_at', { ascending: true })
@@ -172,11 +284,62 @@ export async function getCalendarEvents(
       caseType: event.case_type,
       caseIdentifier: event.case_identifier,
       patientDisplayName: event.patient_display_name,
+      patientFirstName: event.patient_first_name ?? null,
+      patientLastName: event.patient_last_name ?? null,
+      patientAddressLine1: event.patient_address_line_1 ?? null,
+      patientCity: event.patient_city ?? null,
+      patientState: event.patient_state ?? null,
+      patientZip: event.patient_zip ?? null,
+      patientSex: (event.patient_sex as 'male' | 'female' | null) ?? null,
+      visitType: (event.visit_type as 'inpatient' | 'outpatient' | null) ?? null,
       location: event.location,
       practiceName: event.practice_name,
       facilityName: event.facility_name,
       notes: event.notes,
       billingClaimId: event.billing_claim_id,
+      insuranceCompany: (() => {
+        const company = Array.isArray(event.tenant_schedule_insurance_companies)
+          ? event.tenant_schedule_insurance_companies[0]
+          : event.tenant_schedule_insurance_companies
+        return company
+          ? {
+              id: company.id,
+              name: company.name,
+              payerCode: company.payer_code,
+              addressLine1: company.address_line_1,
+              city: company.city,
+              state: company.state,
+              zip: company.zip,
+              networkStatus: company.network_status,
+            }
+          : null
+      })(),
+      procedureType: (() => {
+        const procedureType = Array.isArray(event.tenant_schedule_procedure_types)
+          ? event.tenant_schedule_procedure_types[0]
+          : event.tenant_schedule_procedure_types
+        return procedureType
+          ? {
+              id: procedureType.id,
+              name: procedureType.name,
+            }
+          : null
+      })(),
+      locationOption: (() => {
+        const location = Array.isArray(event.tenant_schedule_locations)
+          ? event.tenant_schedule_locations[0]
+          : event.tenant_schedule_locations
+        return location
+          ? {
+              id: location.id,
+              name: location.name,
+              addressLine1: location.address_line_1,
+              city: location.city,
+              state: location.state,
+              zip: location.zip,
+            }
+          : null
+      })(),
       provider: provider
         ? {
             id: provider.id,
@@ -226,11 +389,22 @@ export async function getCalendarEvents(
       caseType: 'Booking',
       caseIdentifier: booking.id.slice(0, 8).toUpperCase(),
       patientDisplayName: null,
+      patientFirstName: null,
+      patientLastName: null,
+      patientAddressLine1: null,
+      patientCity: null,
+      patientState: null,
+      patientZip: null,
+      patientSex: null,
+      visitType: null,
       location: booking.location,
       practiceName: isPractice ? tenantLabel : null,
       facilityName: isPractice ? null : tenantLabel,
       notes: booking.notes,
       billingClaimId: null,
+      insuranceCompany: null,
+      procedureType: null,
+      locationOption: null,
       provider: provider
         ? {
             id: provider.id,
@@ -251,4 +425,120 @@ export async function getCalendarEvents(
   }, [])
 
   return dedupedEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+}
+
+export async function getScheduleCases(
+  supabase: Awaited<ReturnType<typeof import('./supabaseServer').createSupabaseServerClient>>,
+  access: CalendarAccessContext,
+  filters: CalendarFilters = {},
+) {
+  if (!access.tenantId) return []
+
+  let query = supabase
+    .from('schedule_events')
+    .select(
+      'id,tenant_id,provider_id,billing_claim_id,title,case_identifier,patient_display_name,patient_first_name,patient_last_name,patient_address_line_1,patient_city,patient_state,patient_zip,patient_sex,visit_type,case_type,status,starts_at,ends_at,location,practice_name,facility_name,notes,color_token,metadata,provider_profiles(id,display_name,specialty),tenant_schedule_locations(id,name,address_line_1,city,state,zip),tenant_schedule_insurance_companies(id,name,payer_code,address_line_1,city,state,zip,network_status),tenant_schedule_procedure_types(id,name)',
+    )
+    .eq('tenant_id', access.tenantId)
+    .order('starts_at', { ascending: true })
+
+  if (access.isProviderView) {
+    if (!access.providerIds.length) return []
+    query = query.in('provider_id', access.providerIds)
+  } else if (filters.providerId) {
+    query = query.eq('provider_id', filters.providerId)
+  }
+
+  if (filters.status) query = query.eq('status', filters.status)
+  if (filters.practice) query = query.ilike('practice_name', `%${filters.practice}%`)
+  if (filters.facility) query = query.ilike('facility_name', `%${filters.facility}%`)
+  if (filters.to) query = query.lte('starts_at', filters.to)
+  if (filters.from) query = query.gte('ends_at', filters.from)
+
+  const { data } = await query
+
+  return ((data ?? []) as CalendarEventRecord[]).map((event) => {
+    const provider = Array.isArray(event.provider_profiles) ? event.provider_profiles[0] : event.provider_profiles
+    const metadata = event.metadata ?? {}
+    const metadataSource = typeof metadata.source === 'string' ? metadata.source : null
+
+    return {
+      id: event.id,
+      tenantId: event.tenant_id,
+      providerId: event.provider_id,
+      source: metadataSource === 'marketplace_post' ? 'marketplace_post' : 'schedule_event',
+      sourceLabel: metadataSource === 'marketplace_post' ? 'Marketplace' : 'Direct',
+      title: event.title,
+      start: event.starts_at,
+      end: event.ends_at,
+      status: event.status,
+      caseType: event.case_type,
+      caseIdentifier: event.case_identifier,
+      patientDisplayName: event.patient_display_name,
+      patientFirstName: event.patient_first_name ?? null,
+      patientLastName: event.patient_last_name ?? null,
+      patientAddressLine1: event.patient_address_line_1 ?? null,
+      patientCity: event.patient_city ?? null,
+      patientState: event.patient_state ?? null,
+      patientZip: event.patient_zip ?? null,
+      patientSex: (event.patient_sex as 'male' | 'female' | null) ?? null,
+      visitType: (event.visit_type as 'inpatient' | 'outpatient' | null) ?? null,
+      location: event.location,
+      practiceName: event.practice_name,
+      facilityName: event.facility_name,
+      notes: event.notes,
+      billingClaimId: event.billing_claim_id,
+      insuranceCompany: (() => {
+        const company = Array.isArray(event.tenant_schedule_insurance_companies)
+          ? event.tenant_schedule_insurance_companies[0]
+          : event.tenant_schedule_insurance_companies
+        return company
+          ? {
+              id: company.id,
+              name: company.name,
+              payerCode: company.payer_code,
+              addressLine1: company.address_line_1,
+              city: company.city,
+              state: company.state,
+              zip: company.zip,
+              networkStatus: company.network_status,
+            }
+          : null
+      })(),
+      procedureType: (() => {
+        const procedureType = Array.isArray(event.tenant_schedule_procedure_types)
+          ? event.tenant_schedule_procedure_types[0]
+          : event.tenant_schedule_procedure_types
+        return procedureType
+          ? {
+              id: procedureType.id,
+              name: procedureType.name,
+            }
+          : null
+      })(),
+      locationOption: (() => {
+        const location = Array.isArray(event.tenant_schedule_locations)
+          ? event.tenant_schedule_locations[0]
+          : event.tenant_schedule_locations
+        return location
+          ? {
+              id: location.id,
+              name: location.name,
+              addressLine1: location.address_line_1,
+              city: location.city,
+              state: location.state,
+              zip: location.zip,
+            }
+          : null
+      })(),
+      provider: provider
+        ? {
+            id: provider.id,
+            name: provider.display_name,
+            specialty: provider.specialty,
+          }
+        : null,
+      colorToken: event.color_token,
+    } satisfies ScheduleCaseDTO
+  })
 }
