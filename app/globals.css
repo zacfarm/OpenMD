@@ -160,6 +160,53 @@ a.card:hover {
   transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
 }
 
+.app-nav-dropdown {
+  position: relative;
+}
+
+.app-nav-dropdown summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.app-nav-dropdown summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-nav-dropdown[open] .app-nav-link,
+.app-nav-dropdown:hover .app-nav-link {
+  background: #eaf2ee;
+  border-color: #d2e0da;
+}
+
+.app-nav-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 220px;
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid #d2e0da;
+  border-radius: 16px;
+  background: #fbfefd;
+  box-shadow: 0 16px 28px rgba(20, 58, 47, 0.16);
+  z-index: 20;
+}
+
+.app-nav-dropdown-link {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: #29423a;
+  font-size: 13px;
+}
+
+.app-nav-dropdown-link:hover {
+  background: #eef6f2;
+}
+
 .app-nav-link:hover {
   background: #eaf2ee;
   border-color: #d2e0da;
@@ -698,6 +745,46 @@ a.card:hover {
   font-size: 14px;
 }
 
+.marketplace-composer {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fbfefd 0%, #f3f8f5 100%);
+  overflow: hidden;
+}
+
+.marketplace-composer-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+}
+
+.marketplace-composer-summary::-webkit-details-marker {
+  display: none;
+}
+
+.marketplace-composer-summary::after {
+  content: '+';
+  font-size: 22px;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.marketplace-composer[open] .marketplace-composer-summary::after {
+  content: '-';
+}
+
+.marketplace-composer-form {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0 16px 16px;
+}
+
 .calendar-shell {
   min-height: 720px;
 }
@@ -850,6 +937,39 @@ a.card:hover {
   background: linear-gradient(135deg, #fbfefd 0%, #f3f8f5 100%);
 }
 
+.scheduled-case-row {
+  padding: 12px 14px;
+  gap: 10px;
+}
+
+.scheduled-case-row .dashboard-case-primary,
+.scheduled-case-row .dashboard-case-meta,
+.scheduled-case-row .dashboard-case-actions {
+  gap: 2px;
+}
+
+.scheduled-case-row .dashboard-case-primary strong,
+.scheduled-case-row .dashboard-case-meta strong {
+  font-size: 13px;
+}
+
+.scheduled-case-row .dashboard-case-primary span,
+.scheduled-case-row .dashboard-case-meta span,
+.scheduled-case-row .dashboard-case-primary p {
+  font-size: 12px;
+}
+
+.scheduled-case-row .dashboard-case-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.scheduled-case-row .btn {
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
 .dashboard-case-primary,
 .dashboard-case-meta,
 .dashboard-case-actions {
@@ -941,6 +1061,8 @@ a.card:hover {
   place-items: center;
   background: rgba(17, 35, 29, 0.38);
   padding: 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .calendar-modal {
@@ -948,6 +1070,37 @@ a.card:hover {
   padding: 20px;
   display: grid;
   gap: 16px;
+  max-height: min(88vh, 980px);
+  overflow-y: auto;
+  align-self: start;
+  margin: auto;
+}
+
+.calendar-modal-form {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 720px) {
+  .calendar-modal-backdrop {
+    padding: 12px;
+    place-items: start center;
+  }
+
+  .calendar-modal {
+    width: min(100%, 760px);
+    max-height: calc(100vh - 24px);
+    padding: 16px;
+  }
+
+  .calendar-modal-form {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-history-head {
+    flex-direction: column;
+  }
 }
 
 .calendar-detail-grid {
@@ -972,6 +1125,45 @@ a.card:hover {
   background: var(--surface-soft);
   display: grid;
   gap: 6px;
+}
+
+.schedule-history-list {
+  display: grid;
+  gap: 10px;
+}
+
+.schedule-history-item {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f8fcfa;
+}
+
+.schedule-history-item p {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.schedule-history-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.schedule-history-head span,
+.schedule-document-meta span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.schedule-document-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 @media (min-width: 960px) {
