@@ -24,9 +24,8 @@ body {
   color: var(--ink);
   background:
     radial-gradient(circle at 90% 8%, #d8f2ea 0%, transparent 38%),
-    radial-gradient(circle at 5% 90%, #e6f0ff 0%, transparent 35%),
-    var(--bg);
-  font-family: 'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif;
+    radial-gradient(circle at 5% 90%, #e6f0ff 0%, transparent 35%), var(--bg);
+  font-family: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
 }
 
 a {
@@ -53,7 +52,10 @@ textarea {
 }
 
 a.card {
-  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease;
 }
 
 a.card:hover {
@@ -99,7 +101,11 @@ a.card:hover {
 .app-header {
   border-bottom: 1px solid var(--line);
   background:
-    radial-gradient(circle at 14% -60%, rgba(12, 122, 90, 0.24), transparent 58%),
+    radial-gradient(
+      circle at 14% -60%,
+      rgba(12, 122, 90, 0.24),
+      transparent 58%
+    ),
     linear-gradient(180deg, #fdfefe 0%, #f8fcfa 100%);
   backdrop-filter: saturate(1.05);
   position: sticky;
@@ -157,7 +163,10 @@ a.card:hover {
   font-size: 13px;
   color: #29423a;
   background: transparent;
-  transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    transform 120ms ease;
 }
 
 .app-nav-dropdown {
@@ -173,7 +182,6 @@ a.card:hover {
   display: none;
 }
 
-.app-nav-dropdown[open] .app-nav-link,
 .app-nav-dropdown:hover .app-nav-link {
   background: #eaf2ee;
   border-color: #d2e0da;
@@ -184,7 +192,7 @@ a.card:hover {
   top: calc(100% + 8px);
   left: 0;
   min-width: 220px;
-  display: grid;
+  display: none;
   gap: 6px;
   padding: 10px;
   border: 1px solid #d2e0da;
@@ -192,6 +200,10 @@ a.card:hover {
   background: #fbfefd;
   box-shadow: 0 16px 28px rgba(20, 58, 47, 0.16);
   z-index: 20;
+}
+
+.app-nav-dropdown.is-open .app-nav-dropdown-menu {
+  display: grid;
 }
 
 .app-nav-dropdown-link {
@@ -254,7 +266,10 @@ a.card:hover {
   justify-content: center;
   overflow: hidden;
   text-decoration: none;
-  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .app-profile-avatar-link:hover {
@@ -288,7 +303,11 @@ a.card:hover {
   align-items: center;
   flex-wrap: wrap;
   background:
-    radial-gradient(circle at 85% 12%, rgba(38, 166, 127, 0.18), transparent 42%),
+    radial-gradient(
+      circle at 85% 12%,
+      rgba(38, 166, 127, 0.18),
+      transparent 42%
+    ),
     linear-gradient(140deg, #f7fcf9 0%, #ffffff 50%, #f3f8ff 100%);
 }
 
@@ -325,8 +344,7 @@ a.card:hover {
 
 .metric-tile {
   padding: 14px;
-  background:
-    linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
 }
 
 .metric-label {
@@ -569,7 +587,11 @@ a.card:hover {
   border: 1px solid rgba(255, 255, 255, 0.45);
   color: #eef8f3;
   background:
-    radial-gradient(circle at 84% 14%, rgba(173, 235, 210, 0.35), transparent 40%),
+    radial-gradient(
+      circle at 84% 14%,
+      rgba(173, 235, 210, 0.35),
+      transparent 40%
+    ),
     linear-gradient(150deg, #0f5f47 0%, #0d4f3d 50%, #1b2f44 100%);
   padding: 26px 24px;
   box-shadow: 0 20px 35px rgba(16, 48, 39, 0.24);
@@ -656,7 +678,10 @@ a.card:hover {
   border-radius: 12px;
   border-color: #b8d1c7;
   padding: 12px 13px;
-  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
 }
 
 .auth-input:focus-visible {
@@ -768,14 +793,14 @@ a.card:hover {
 }
 
 .marketplace-composer-summary::after {
-  content: '+';
+  content: "+";
   font-size: 22px;
   line-height: 1;
   color: var(--accent);
 }
 
 .marketplace-composer[open] .marketplace-composer-summary::after {
-  content: '-';
+  content: "-";
 }
 
 .marketplace-composer-form {
@@ -916,7 +941,10 @@ a.card:hover {
 .dashboard-case-head,
 .dashboard-case-row {
   display: grid;
-  grid-template-columns: minmax(220px, 1.5fr) 120px minmax(150px, 1fr) minmax(160px, 1fr) minmax(150px, 1fr) 150px;
+  grid-template-columns: minmax(220px, 1.5fr) 120px minmax(150px, 1fr) minmax(
+      160px,
+      1fr
+    ) minmax(150px, 1fr) 150px;
   gap: 12px;
   align-items: start;
 }
@@ -928,6 +956,21 @@ a.card:hover {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+}
+
+.billing-tracker-head,
+.billing-tracker-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(140px, 0.8fr) minmax(
+      220px,
+      1fr
+    ) minmax(180px, 0.9fr) minmax(180px, 0.9fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.billing-tracker-head {
+  padding: 0 16px;
 }
 
 .dashboard-case-row {

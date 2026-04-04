@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import AppNavDropdown from "@/components/navigation/AppNavDropdown";
 import { getGlobalAdminAccess } from "@/lib/openmdAdmin";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { hasPermission, getRoleLabel, normalizeTenantRole } from "@/lib/rbac";
@@ -92,30 +93,18 @@ export default async function ProtectedLayout({
             </Link>
             {hasPermission(role, "view_bookings") &&
               normalizedRole !== "billing" && (
-                <details className="app-nav-dropdown">
-                  <summary className="app-nav-link">Scheduling</summary>
-                  <div className="app-nav-dropdown-menu">
-                    <Link href="/bookings" className="app-nav-dropdown-link">
-                      Global Marketplace
-                    </Link>
-                    <Link
-                      href="/schedule-cases"
-                      className="app-nav-dropdown-link"
-                    >
-                      Scheduled Cases
-                    </Link>
-                    {(normalizedRole === "admin" ||
-                      normalizedRole === "facility_manager" ||
-                      normalizedRole === "credentialing") && (
-                      <Link
-                        href="/scheduling/manage"
-                        className="app-nav-dropdown-link"
-                      >
-                        Manage
-                      </Link>
-                    )}
-                  </div>
-                </details>
+                <AppNavDropdown
+                  label="Scheduling"
+                  items={[
+                    { href: "/bookings", label: "Global Marketplace" },
+                    { href: "/schedule-cases", label: "Scheduled Cases" },
+                    ...(normalizedRole === "admin" ||
+                    normalizedRole === "facility_manager" ||
+                    normalizedRole === "credentialing"
+                      ? [{ href: "/scheduling/manage", label: "Manage" }]
+                      : []),
+                  ]}
+                />
               )}
             {hasPermission(role, "view_bookings") && (
               <Link href="/calendar" className="app-nav-link">
@@ -129,9 +118,20 @@ export default async function ProtectedLayout({
                 </Link>
               )}
             {hasPermission(role, "view_billing") && (
-              <Link href="/billing" className="app-nav-link">
-                Billing
-              </Link>
+              <AppNavDropdown
+                label="Billing"
+                items={[
+                  {
+                    href: "/billing/service-tracker",
+                    label: "Billing Service Tracker",
+                  },
+                  {
+                    href: "/billing/claims",
+                    label: "Submit Claim and History",
+                  },
+                  { href: "/billing/payments", label: "Post Payment" },
+                ]}
+              />
             )}
             {hasPermission(role, "view_notifications") && (
               <Link
