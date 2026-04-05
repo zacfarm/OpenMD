@@ -767,6 +767,70 @@ a.card:hover {
   display: grid;
   gap: 6px;
   color: var(--muted);
+
+  .msg-page {
+    container-type: inline-size;
+  }
+
+  .msg-hero {
+    overflow: hidden;
+    position: relative;
+  }
+
+  .msg-layout {
+    grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  }
+
+  .msg-thread-list,
+  .msg-bubble-stream {
+    scrollbar-width: thin;
+  }
+
+  @media (max-width: 1080px) {
+    .msg-layout {
+      grid-template-columns: 1fr !important;
+    }
+
+    .msg-sidebar {
+      order: 2;
+    }
+
+    .msg-thread-panel {
+      order: 1;
+      min-height: 540px !important;
+    }
+
+    .msg-thread-list {
+      max-height: 360px !important;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .msg-hero {
+      padding: 18px !important;
+      border-radius: 16px !important;
+    }
+
+    .msg-sidebar {
+      padding: 12px !important;
+      border-radius: 16px !important;
+    }
+
+    .msg-thread-panel {
+      padding: 12px !important;
+      border-radius: 16px !important;
+      min-height: 480px !important;
+    }
+
+    .msg-bubble-stream {
+      max-height: 340px !important;
+      gap: 8px !important;
+    }
+
+    .msg-reply-form {
+      gap: 8px !important;
+    }
+  }
   font-size: 14px;
 }
 
@@ -941,10 +1005,9 @@ a.card:hover {
 .dashboard-case-head,
 .dashboard-case-row {
   display: grid;
-  grid-template-columns: minmax(220px, 1.5fr) 120px minmax(150px, 1fr) minmax(
-      160px,
-      1fr
-    ) minmax(150px, 1fr) 150px;
+  grid-template-columns:
+    minmax(220px, 1.5fr) 120px minmax(150px, 1fr) minmax(160px, 1fr)
+    minmax(150px, 1fr) 150px;
   gap: 12px;
   align-items: start;
 }
@@ -961,10 +1024,9 @@ a.card:hover {
 .billing-tracker-head,
 .billing-tracker-row {
   display: grid;
-  grid-template-columns: minmax(220px, 1.2fr) minmax(140px, 0.8fr) minmax(
-      220px,
-      1fr
-    ) minmax(180px, 0.9fr) minmax(180px, 0.9fr);
+  grid-template-columns:
+    minmax(220px, 1.2fr) minmax(140px, 0.8fr) minmax(220px, 1fr)
+    minmax(180px, 0.9fr) minmax(180px, 0.9fr);
   gap: 12px;
   align-items: start;
 }

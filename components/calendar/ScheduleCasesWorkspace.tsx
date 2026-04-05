@@ -488,6 +488,8 @@ export default function ScheduleCasesWorkspace({
 
   async function uploadDocument(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
+
     if (!documentsCase) return;
 
     if (!documentType) {
@@ -566,7 +568,6 @@ export default function ScheduleCasesWorkspace({
     setDocumentType("");
     setDocumentName("");
     setDocumentFile(null);
-    const form = event.currentTarget;
     form.reset();
   }
 

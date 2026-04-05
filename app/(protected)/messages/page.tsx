@@ -170,9 +170,9 @@ export default async function MessagesPage({
   }
 
   return (
-    <section style={{ display: "grid", gap: 20 }}>
+    <section className="msg-page" style={{ display: "grid", gap: 20 }}>
       <article
-        className="card"
+        className="card msg-hero"
         style={{
           padding: 26,
           background:
@@ -283,6 +283,7 @@ export default async function MessagesPage({
       </article>
 
       <div
+        className="msg-layout"
         style={{
           display: "grid",
           gap: 18,
@@ -291,7 +292,7 @@ export default async function MessagesPage({
         }}
       >
         <aside
-          className="card"
+          className="card msg-sidebar"
           style={{
             padding: 18,
             display: "grid",
@@ -374,6 +375,7 @@ export default async function MessagesPage({
               </p>
             ) : (
               <div
+                className="msg-thread-list"
                 style={{
                   display: "grid",
                   gap: 8,
@@ -449,7 +451,7 @@ export default async function MessagesPage({
         </aside>
 
         <main
-          className="card"
+          className="card msg-thread-panel"
           style={{
             padding: 18,
             minHeight: 640,
@@ -494,6 +496,7 @@ export default async function MessagesPage({
               </div>
 
               <div
+                className="msg-bubble-stream"
                 style={{
                   display: "grid",
                   gap: 12,
@@ -545,6 +548,7 @@ export default async function MessagesPage({
               </div>
 
               <form
+                className="msg-reply-form"
                 action={sendDirectMessage}
                 style={{
                   display: "grid",

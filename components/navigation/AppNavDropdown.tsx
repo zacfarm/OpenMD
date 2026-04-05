@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Item = {
   href: string;
@@ -13,20 +13,59 @@ type Props = {
   items: Item[];
 };
 
+const HOVER_OPEN_DELAY_MS = 1000;
+const HOVER_CLOSE_DELAY_MS = 2000;
+
 export default function AppNavDropdown({ label, items }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [lockedClosed, setLockedClosed] = useState(false);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+      }
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
+
+  function clearHoverTimer() {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+  }
+
+  function clearCloseTimer() {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }
 
   return (
     <div
       className={`app-nav-dropdown${isOpen ? " is-open" : ""}`}
       onMouseEnter={() => {
-        if (!lockedClosed) {
+        clearCloseTimer();
+        if (lockedClosed || isOpen) return;
+        clearHoverTimer();
+        hoverTimerRef.current = setTimeout(() => {
           setIsOpen(true);
-        }
+          hoverTimerRef.current = null;
+        }, HOVER_OPEN_DELAY_MS);
       }}
       onMouseLeave={() => {
-        setIsOpen(false);
+        clearHoverTimer();
+        clearCloseTimer();
+        closeTimerRef.current = setTimeout(() => {
+          setIsOpen(false);
+          closeTimerRef.current = null;
+        }, HOVER_CLOSE_DELAY_MS);
         setLockedClosed(false);
       }}
     >
@@ -38,6 +77,8 @@ export default function AppNavDropdown({ label, items }: Props) {
             href={item.href}
             className="app-nav-dropdown-link"
             onClick={() => {
+              clearHoverTimer();
+              clearCloseTimer();
               setIsOpen(false);
               setLockedClosed(true);
             }}
