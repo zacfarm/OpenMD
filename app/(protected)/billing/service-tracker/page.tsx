@@ -127,8 +127,12 @@ export default async function BillingServiceTrackerPage({
   };
 
   const getBillingStatusLabel = (event: {
+    starts_at: string;
     billing_claim_id: string | null;
   }) => {
+    const serviceTime = new Date(event.starts_at);
+    if (serviceTime.getTime() > Date.now()) return "Awaiting";
+
     if (!event.billing_claim_id) return "Ready for billing";
     const claimStatus = claimById.get(event.billing_claim_id);
     if (claimStatus === "accepted") return "Claim accepted";
@@ -190,6 +194,8 @@ export default async function BillingServiceTrackerPage({
               const isSelected = Boolean(
                 activeEventData && event.id === activeEventData.id,
               );
+              const serviceTimePassed =
+                new Date(event.starts_at).getTime() <= Date.now();
               return (
                 <article
                   key={event.id}
@@ -217,16 +223,31 @@ export default async function BillingServiceTrackerPage({
                   <div className="dashboard-case-actions">
                     <Link
                       className="btn btn-secondary"
-                      href={`/billing/service-tracker?eventId=${event.id}#patient-billing`}
+                      href={`/billing/patient/${event.id}`}
                     >
                       Open patient
                     </Link>
-                    <Link
-                      className="btn btn-secondary"
-                      href={`/billing/claims?eventId=${event.id}#submit-claim`}
-                    >
-                      Submit claim
-                    </Link>
+                    {serviceTimePassed ? (
+                      <Link
+                        className="btn btn-secondary"
+                        href={`/billing/claims?eventId=${event.id}#submit-claim`}
+                      >
+                        Submit claim
+                      </Link>
+                    ) : (
+                      <span
+                        className="btn btn-secondary"
+                        aria-disabled="true"
+                        title="Submit claim is available after service date and time has passed."
+                        style={{
+                          opacity: 0.55,
+                          cursor: "not-allowed",
+                          pointerEvents: "none",
+                        }}
+                      >
+                        Submit claim
+                      </span>
+                    )}
                     <Link
                       className="btn btn-secondary"
                       href={`/schedule-cases#case-${event.id}`}

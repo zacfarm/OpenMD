@@ -3,6 +3,10 @@
 import { useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { CREDENTIAL_TYPES } from "@/lib/credentialsPolicy";
+import {
+  downloadCredentialDocument,
+  exportCredentialDocuments,
+} from "@/lib/documentExportEngine";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "#b45309",
@@ -69,6 +73,7 @@ export default function ProviderCredentialsClient({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   async function handleUpload(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -151,6 +156,39 @@ export default function ProviderCredentialsClient({
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleExportAll() {
+    setError(null);
+    setSuccess(null);
+    setExporting(true);
+
+    try {
+      const result = await exportCredentialDocuments({
+        supabase,
+        documents: credentials.map((cred) => ({
+          id: cred.id,
+          documentName: cred.document_name,
+          storagePath: cred.storage_path,
+          credentialType: cred.credential_type,
+          status: cred.status,
+          uploadedAt: cred.created_at,
+          expiresOn: cred.expires_on,
+        })),
+      });
+
+      if (result.failed.length > 0) {
+        setError(
+          `Export finished with ${result.failed.length} failed download(s). Please retry for missing files.`,
+        );
+      } else {
+        setSuccess(`Exported ${result.total} document(s).`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -239,7 +277,25 @@ export default function ProviderCredentialsClient({
 
       {/* Credential list */}
       <article className="card" style={{ padding: 18 }}>
-        <h2 style={{ marginTop: 0 }}>Credential history</h2>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            flexWrap: "wrap",
+            marginBottom: 12,
+          }}
+        >
+          <h2 style={{ marginTop: 0, marginBottom: 0 }}>Credential history</h2>
+          <button
+            className="btn btn-secondary"
+            disabled={exporting || credentials.length === 0}
+            onClick={handleExportAll}
+          >
+            {exporting ? "Exporting…" : "Document Export Engine"}
+          </button>
+        </div>
 
         {credentials.length === 0 ? (
           <p style={{ margin: 0, color: "var(--muted)" }}>
@@ -248,7 +304,24 @@ export default function ProviderCredentialsClient({
         ) : (
           <div style={{ display: "grid", gap: 12 }}>
             {credentials.map((cred) => (
-              <CredentialRow key={cred.id} cred={cred} />
+              <CredentialRow
+                key={cred.id}
+                cred={cred}
+                onDownload={async (credential) => {
+                  await downloadCredentialDocument({
+                    supabase,
+                    document: {
+                      id: credential.id,
+                      documentName: credential.document_name,
+                      storagePath: credential.storage_path,
+                      credentialType: credential.credential_type,
+                      status: credential.status,
+                      uploadedAt: credential.created_at,
+                      expiresOn: credential.expires_on,
+                    },
+                  });
+                }}
+              />
             ))}
           </div>
         )}
@@ -257,10 +330,18 @@ export default function ProviderCredentialsClient({
   );
 }
 
-function CredentialRow({ cred }: { cred: Credential }) {
+function CredentialRow({
+  cred,
+  onDownload,
+}: {
+  cred: Credential;
+  onDownload: (cred: Credential) => Promise<void>;
+}) {
   const supabase = createSupabaseBrowserClient();
   const [open, setOpen] = useState(false);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   async function viewDocument() {
     const { data } = await supabase.storage
@@ -269,6 +350,20 @@ function CredentialRow({ cred }: { cred: Credential }) {
     if (data?.signedUrl) {
       setSignedUrl(data.signedUrl);
       window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    }
+  }
+
+  async function downloadDocument() {
+    setDownloadError(null);
+    setDownloading(true);
+    try {
+      await onDownload(cred);
+    } catch (err) {
+      setDownloadError(
+        err instanceof Error ? err.message : "Unable to download document.",
+      );
+    } finally {
+      setDownloading(false);
     }
   }
 
@@ -316,6 +411,14 @@ function CredentialRow({ cred }: { cred: Credential }) {
           </button>
           <button
             className="btn btn-secondary"
+            onClick={downloadDocument}
+            disabled={downloading}
+            style={{ fontSize: 12, padding: "4px 10px" }}
+          >
+            {downloading ? "Downloading…" : "Download"}
+          </button>
+          <button
+            className="btn btn-secondary"
             onClick={() => setOpen((o) => !o)}
             style={{ fontSize: 12, padding: "4px 10px" }}
           >
@@ -323,6 +426,12 @@ function CredentialRow({ cred }: { cred: Credential }) {
           </button>
         </div>
       </div>
+
+      {downloadError && (
+        <p style={{ margin: "8px 0 0", fontSize: 13, color: "var(--warning)" }}>
+          {downloadError}
+        </p>
+      )}
 
       {cred.notes && (
         <p

@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
+import {
+  downloadCredentialDocument,
+  exportCredentialDocuments,
+} from "@/lib/documentExportEngine";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "#b45309",
@@ -71,6 +75,7 @@ export default function AdminCredentialsReview({
     ok: boolean;
   } | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   // Build unique provider list for filter
   const providerMap = new Map<string, string>();
@@ -128,6 +133,63 @@ export default function AdminCredentialsReview({
     setFileError(
       "Unable to open file. Reviewer storage access may not be applied yet.",
     );
+  }
+
+  async function downloadDocument(cred: CredentialRow) {
+    setFileError(null);
+
+    try {
+      await downloadCredentialDocument({
+        supabase,
+        document: {
+          id: cred.id,
+          documentName: cred.document_name,
+          storagePath: cred.storage_path,
+          credentialType: cred.credential_type,
+          providerName: cred.provider_profiles?.display_name,
+          status: cred.status,
+          uploadedAt: cred.created_at,
+          expiresOn: cred.expires_on,
+        },
+      });
+    } catch (err) {
+      setFileError(
+        err instanceof Error
+          ? err.message
+          : "Unable to download this file for review.",
+      );
+    }
+  }
+
+  async function handleExportAll() {
+    setFileError(null);
+    setExporting(true);
+
+    try {
+      const result = await exportCredentialDocuments({
+        supabase,
+        documents: filtered.map((cred) => ({
+          id: cred.id,
+          documentName: cred.document_name,
+          storagePath: cred.storage_path,
+          credentialType: cred.credential_type,
+          providerName: cred.provider_profiles?.display_name,
+          status: cred.status,
+          uploadedAt: cred.created_at,
+          expiresOn: cred.expires_on,
+        })),
+      });
+
+      if (result.failed.length > 0) {
+        setFileError(
+          `Export finished with ${result.failed.length} failed download(s). Retry for missing files.`,
+        );
+      }
+    } catch (err) {
+      setFileError(err instanceof Error ? err.message : "Export failed.");
+    } finally {
+      setExporting(false);
+    }
   }
 
   const counts = {
@@ -291,7 +353,24 @@ export default function AdminCredentialsReview({
       </article>
 
       <article className="card" style={{ padding: 18 }}>
-        <h1 style={{ marginTop: 0 }}>Credential Review</h1>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            flexWrap: "wrap",
+          }}
+        >
+          <h1 style={{ marginTop: 0, marginBottom: 0 }}>Credential Review</h1>
+          <button
+            className="btn btn-secondary"
+            onClick={handleExportAll}
+            disabled={exporting || filtered.length === 0}
+          >
+            {exporting ? "Exporting…" : "Document Export Engine"}
+          </button>
+        </div>
         <p style={{ color: "var(--muted)", marginTop: 0 }}>
           Review and approve or deny credential documents submitted by
           providers.
@@ -381,6 +460,7 @@ export default function AdminCredentialsReview({
                 toast={toast?.id === cred.id ? toast : null}
                 onReview={handleReview}
                 onView={viewDocument}
+                onDownload={downloadDocument}
               />
             ))}
           </div>
@@ -396,15 +476,27 @@ function CredentialReviewRow({
   toast,
   onReview,
   onView,
+  onDownload,
 }: {
   cred: CredentialRow;
   busy: boolean;
   toast: { msg: string; ok: boolean } | null;
   onReview: (id: string, status: CredentialStatus, notes: string) => void;
   onView: (path: string) => void;
+  onDownload: (cred: CredentialRow) => Promise<void>;
 }) {
   const [notes, setNotes] = useState(cred.notes ?? "");
   const [expanded, setExpanded] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleDownload() {
+    setDownloading(true);
+    try {
+      await onDownload(cred);
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <div
@@ -476,6 +568,14 @@ function CredentialReviewRow({
             onClick={() => onView(cred.storage_path)}
           >
             View doc
+          </button>
+          <button
+            className="btn btn-secondary"
+            style={{ fontSize: 12, padding: "4px 10px" }}
+            onClick={handleDownload}
+            disabled={downloading}
+          >
+            {downloading ? "Downloading…" : "Download file"}
           </button>
           <button
             className="btn btn-secondary"
