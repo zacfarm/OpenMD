@@ -1,11 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import {
-  MIN_PASSWORD_LENGTH,
-  PASSWORD_POLICY_HINTS,
-  getPasswordPolicyError,
-} from "@/lib/passwordPolicy";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
 type SettingsPayload = {
@@ -128,54 +123,6 @@ async function updateProfile(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/providers");
   redirect("/settings/profile?success=Profile updated.");
-}
-
-async function updatePassword(formData: FormData) {
-  "use server";
-
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const password = String(formData.get("password") || "");
-  const confirmPassword = String(formData.get("confirm_password") || "");
-
-  if (!password || !confirmPassword) {
-    redirect(
-      "/settings/profile?passwordError=Both password fields are required.",
-    );
-  }
-
-  const policyError = getPasswordPolicyError(password);
-  if (policyError) {
-    redirect(
-      `/settings/profile?passwordError=${encodeURIComponent(policyError)}`,
-    );
-  }
-
-  if (password !== confirmPassword) {
-    redirect(
-      "/settings/profile?passwordError=New password and confirmation do not match.",
-    );
-  }
-
-  const { error } = await supabase.auth.updateUser({ password });
-
-  if (error) {
-    redirect(
-      `/settings/profile?passwordError=${encodeURIComponent(error.message)}`,
-    );
-  }
-
-  await logSecurityAction(user.id, "password_updated");
-
-  revalidatePath("/settings/profile");
-  redirect("/settings/profile?passwordSuccess=Password updated successfully.");
 }
 
 async function updateEmail(formData: FormData) {
@@ -400,8 +347,6 @@ export default async function ProfileSettingsPage({
     success?: string;
     emailError?: string;
     emailSuccess?: string;
-    passwordError?: string;
-    passwordSuccess?: string;
     sessionError?: string;
     sessionSuccess?: string;
     avatarError?: string;
@@ -455,8 +400,6 @@ export default async function ProfileSettingsPage({
   const actionSuccess = resolvedSearchParams?.success || null;
   const emailError = resolvedSearchParams?.emailError || null;
   const emailSuccess = resolvedSearchParams?.emailSuccess || null;
-  const passwordError = resolvedSearchParams?.passwordError || null;
-  const passwordSuccess = resolvedSearchParams?.passwordSuccess || null;
   const sessionError = resolvedSearchParams?.sessionError || null;
   const sessionSuccess = resolvedSearchParams?.sessionSuccess || null;
   const avatarError = resolvedSearchParams?.avatarError || null;
@@ -589,6 +532,74 @@ export default async function ProfileSettingsPage({
         <p style={{ margin: 0, color: "var(--muted)" }}>
           Manage your OpenMD identity details across all roles and workspaces.
         </p>
+      </article>
+
+      <article className="card" style={{ padding: 18 }}>
+        <h2 style={{ marginTop: 0, marginBottom: 8 }}>Onboarding Completion</h2>
+        <p style={{ marginTop: 0, color: "var(--muted)", fontSize: 14 }}>
+          Profile setup progress based on your active role requirements.
+        </p>
+
+        <div style={{ marginBottom: 10 }}>
+          <p style={{ margin: 0, fontWeight: 700 }}>
+            {completedOnboarding}/{onboardingItems.length} complete (
+            {onboardingPercent}%)
+          </p>
+          <div
+            style={{
+              marginTop: 6,
+              background: "#e8f0ec",
+              borderRadius: 999,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                height: 10,
+                width: `${onboardingPercent}%`,
+                background: "var(--accent)",
+              }}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gap: 8 }}>
+          {onboardingItems.map((item) => (
+            <div
+              key={item.label}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 14,
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-flex",
+                  width: 18,
+                  height: 18,
+                  borderRadius: "50%",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: item.done
+                    ? "rgba(11, 124, 69, 0.18)"
+                    : "rgba(0, 0, 0, 0.08)",
+                  color: item.done ? "var(--ok)" : "var(--muted)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                {item.done ? "✓" : "!"}
+              </span>
+              <span
+                style={{ color: item.done ? "var(--ink)" : "var(--muted)" }}
+              >
+                {item.label}
+              </span>
+            </div>
+          ))}
+        </div>
       </article>
 
       <article className="card" style={{ padding: 18 }}>
@@ -1232,74 +1243,6 @@ export default async function ProfileSettingsPage({
       </article>
 
       <article className="card" style={{ padding: 18 }}>
-        <h2 style={{ marginTop: 0, marginBottom: 8 }}>Onboarding Completion</h2>
-        <p style={{ marginTop: 0, color: "var(--muted)", fontSize: 14 }}>
-          Profile setup progress based on your active role requirements.
-        </p>
-
-        <div style={{ marginBottom: 10 }}>
-          <p style={{ margin: 0, fontWeight: 700 }}>
-            {completedOnboarding}/{onboardingItems.length} complete (
-            {onboardingPercent}%)
-          </p>
-          <div
-            style={{
-              marginTop: 6,
-              background: "#e8f0ec",
-              borderRadius: 999,
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                height: 10,
-                width: `${onboardingPercent}%`,
-                background: "var(--accent)",
-              }}
-            />
-          </div>
-        </div>
-
-        <div style={{ display: "grid", gap: 8 }}>
-          {onboardingItems.map((item) => (
-            <div
-              key={item.label}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 14,
-              }}
-            >
-              <span
-                style={{
-                  display: "inline-flex",
-                  width: 18,
-                  height: 18,
-                  borderRadius: "50%",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: item.done
-                    ? "rgba(11, 124, 69, 0.18)"
-                    : "rgba(0, 0, 0, 0.08)",
-                  color: item.done ? "var(--ok)" : "var(--muted)",
-                  fontSize: 12,
-                  fontWeight: 700,
-                }}
-              >
-                {item.done ? "✓" : "!"}
-              </span>
-              <span
-                style={{ color: item.done ? "var(--ink)" : "var(--muted)" }}
-              >
-                {item.label}
-              </span>
-            </div>
-          ))}
-        </div>
-      </article>
-
-      <article className="card" style={{ padding: 18 }}>
         <h2 style={{ marginTop: 0, marginBottom: 8 }}>Email and Sessions</h2>
         <p style={{ marginTop: 0, color: "var(--muted)", fontSize: 14 }}>
           Manage your login email and revoke access from other active sessions.
@@ -1370,82 +1313,6 @@ export default async function ProfileSettingsPage({
           <button className="btn btn-secondary" type="submit">
             Sign out other sessions
           </button>
-        </form>
-      </article>
-
-      <article className="card" style={{ padding: 18 }}>
-        <h2 style={{ marginTop: 0, marginBottom: 8 }}>Change Password</h2>
-        <p style={{ marginTop: 0, color: "var(--muted)", fontSize: 14 }}>
-          Password must include: {PASSWORD_POLICY_HINTS.join(" • ")}
-        </p>
-
-        {passwordError && (
-          <p
-            style={{
-              margin: "0 0 10px",
-              color: "var(--warning)",
-              background: "rgba(180, 74, 46, 0.1)",
-              border: "1px solid rgba(180, 74, 46, 0.28)",
-              borderRadius: 10,
-              padding: "8px 10px",
-            }}
-          >
-            {passwordError}
-          </p>
-        )}
-
-        {passwordSuccess && (
-          <p
-            style={{
-              margin: "0 0 10px",
-              color: "var(--ok)",
-              background: "rgba(11, 124, 69, 0.1)",
-              border: "1px solid rgba(11, 124, 69, 0.28)",
-              borderRadius: 10,
-              padding: "8px 10px",
-            }}
-          >
-            {passwordSuccess}
-          </p>
-        )}
-
-        <form
-          action={updatePassword}
-          style={{ display: "grid", gap: 12, maxWidth: 520 }}
-        >
-          <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontSize: 13, color: "var(--muted)" }}>
-              New password
-            </span>
-            <input
-              className="field"
-              name="password"
-              type="password"
-              minLength={MIN_PASSWORD_LENGTH}
-              autoComplete="new-password"
-              required
-            />
-          </label>
-
-          <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontSize: 13, color: "var(--muted)" }}>
-              Confirm new password
-            </span>
-            <input
-              className="field"
-              name="confirm_password"
-              type="password"
-              minLength={MIN_PASSWORD_LENGTH}
-              autoComplete="new-password"
-              required
-            />
-          </label>
-
-          <div>
-            <button className="btn btn-primary" type="submit">
-              Update password
-            </button>
-          </div>
         </form>
       </article>
 

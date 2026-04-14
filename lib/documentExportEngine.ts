@@ -1,3 +1,5 @@
+import JSZip from "jszip";
+
 type SupabaseSignedUrlResult = {
   data: { signedUrl: string } | null;
   error: { message: string } | null;
@@ -95,6 +97,28 @@ function buildExportFileName(
   return ensureExtension(prefixed, doc.storagePath);
 }
 
+function makeUniqueFileName(fileName: string, usedNames: Set<string>): string {
+  if (!usedNames.has(fileName)) {
+    usedNames.add(fileName);
+    return fileName;
+  }
+
+  const dotIndex = fileName.lastIndexOf(".");
+  const hasExt = dotIndex > 0;
+  const base = hasExt ? fileName.slice(0, dotIndex) : fileName;
+  const ext = hasExt ? fileName.slice(dotIndex) : "";
+
+  let attempt = 2;
+  while (true) {
+    const candidate = `${base} (${attempt})${ext}`;
+    if (!usedNames.has(candidate)) {
+      usedNames.add(candidate);
+      return candidate;
+    }
+    attempt += 1;
+  }
+}
+
 function buildManifestCsv(docs: ExportableCredentialDocument[]): string {
   const rows = [
     [
@@ -164,26 +188,47 @@ export async function exportCredentialDocuments(params: {
     throw new Error("No documents available to export.");
   }
 
+  const zip = new JSZip();
+  const docsFolder = zip.folder("documents");
+  if (!docsFolder) {
+    throw new Error("Unable to initialize ZIP export.");
+  }
+
   const failed: string[] = [];
+  const usedNames = new Set<string>();
 
   for (let i = 0; i < documents.length; i += 1) {
     const doc = documents[i];
-    const fileName = buildExportFileName(doc, i);
+    const fileName = makeUniqueFileName(buildExportFileName(doc, i), usedNames);
     onProgress?.({ current: i + 1, total: documents.length, fileName });
 
     try {
-      await downloadCredentialDocument({ supabase, document: doc, index: i });
+      const signedUrl = await getSignedUrl(supabase, doc.storagePath);
+      const blob = await fetchBlob(signedUrl);
+      docsFolder.file(fileName, blob);
     } catch {
       failed.push(fileName);
     }
   }
 
   const manifest = buildManifestCsv(documents);
-  const manifestBlob = new Blob([manifest], { type: "text/csv;charset=utf-8" });
-  triggerDownload(
-    manifestBlob,
-    `credentials-export-manifest-${timestampSuffix()}.csv`,
+  zip.file("manifest.csv", manifest);
+  zip.file(
+    "summary.json",
+    JSON.stringify(
+      {
+        exportedAt: new Date().toISOString(),
+        total: documents.length,
+        successful: documents.length - failed.length,
+        failed,
+      },
+      null,
+      2,
+    ),
   );
+
+  const archive = await zip.generateAsync({ type: "blob" });
+  triggerDownload(archive, `credentials-export-${timestampSuffix()}.zip`);
 
   return {
     total: documents.length,

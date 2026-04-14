@@ -422,7 +422,7 @@ export default function AdminCredentialsReview({
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
             <option value="denied">Denied</option>
-            <option value="expired">Expired</option>
+            <option value="expired">EXPIRED</option>
           </select>
 
           <select
@@ -567,7 +567,7 @@ function CredentialReviewRow({
             style={{ fontSize: 12, padding: "4px 10px" }}
             onClick={() => onView(cred.storage_path)}
           >
-            View doc
+            VIEW DOC
           </button>
           <button
             className="btn btn-secondary"
@@ -575,14 +575,14 @@ function CredentialReviewRow({
             onClick={handleDownload}
             disabled={downloading}
           >
-            {downloading ? "Downloading…" : "Download file"}
+            {downloading ? "DOWNLOADING..." : "DOWNLOAD FILE"}
           </button>
           <button
             className="btn btn-secondary"
             style={{ fontSize: 12, padding: "4px 10px" }}
             onClick={() => setExpanded((o) => !o)}
           >
-            {expanded ? "Collapse" : "Review"}
+            {expanded ? "COLLAPSE" : "REVIEW"}
           </button>
         </div>
       </div>
@@ -632,7 +632,7 @@ function CredentialReviewRow({
               disabled={busy}
               onClick={() => onReview(cred.id, "expired", notes)}
             >
-              Mark expired
+              MARK EXPIRED
             </button>
           </div>
           {toast && (
