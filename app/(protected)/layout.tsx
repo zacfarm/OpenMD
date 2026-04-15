@@ -148,7 +148,7 @@ export default async function ProtectedLayout({
               href="/messages"
               className="app-nav-link app-nav-link-notifications"
             >
-              Messages
+              Conversation
               {typeof messageUnreadCount === "number" &&
                 messageUnreadCount > 0 && (
                   <span className="app-notification-count">
