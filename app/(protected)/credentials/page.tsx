@@ -86,10 +86,22 @@ export default async function CredentialsPage() {
     const { data: allCredentials } = await supabase
       .from("provider_credentials")
       .select(
-        "id,credential_type,document_name,storage_path,status,notes,expires_on,created_at,tenant_id,provider_profiles(id,display_name,specialty)",
+        "id,credential_type,document_name,storage_path,status,notes,expires_on,created_at,tenant_id,uploaded_by,provider_profiles(id,display_name,specialty)",
       )
       .eq("tenant_id", tenantId)
       .order("created_at", { ascending: false });
+
+    const { data: tenantMemberships } = await supabase
+      .from("tenant_memberships")
+      .select("user_id,role")
+      .eq("tenant_id", tenantId);
+
+    const userRolesById: Record<string, string> = {};
+    for (const membershipRow of tenantMemberships ?? []) {
+      const normalizedRole = normalizeTenantRole(membershipRow.role);
+      userRolesById[membershipRow.user_id] =
+        normalizedRole ?? membershipRow.role;
+    }
 
     const { data: providerLinks } = await supabase
       .from("provider_facility_links")
@@ -200,6 +212,7 @@ export default async function CredentialsPage() {
             credentials={(allCredentials ?? []) as never}
             tenantId={tenantId}
             complianceRows={complianceRows}
+            userRolesById={userRolesById}
           />
           <ProviderCredentialsClient
             initialCredentials={(ownCredentials ?? []) as never}
@@ -215,6 +228,7 @@ export default async function CredentialsPage() {
         credentials={(allCredentials ?? []) as never}
         tenantId={tenantId}
         complianceRows={complianceRows}
+        userRolesById={userRolesById}
       />
     );
   }

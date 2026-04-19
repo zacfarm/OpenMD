@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
+import { normalizeTenantRole } from "@/lib/rbac";
 import {
   downloadCredentialDocument,
   exportCredentialDocuments,
@@ -27,6 +28,16 @@ function formatDateUtc(value: string) {
 
 type CredentialStatus = "pending" | "approved" | "denied" | "expired";
 type ComplianceStatus = "compliant" | "expiring_soon" | "missing_document";
+type ExportAudience = "doctor" | "billing" | "credentialing";
+
+const EXPORT_AUDIENCE_OPTIONS: Array<{
+  value: ExportAudience;
+  label: string;
+}> = [
+  { value: "doctor", label: "Providers" },
+  { value: "billing", label: "Billers" },
+  { value: "credentialing", label: "Schedulers" },
+];
 
 interface ComplianceRow {
   providerId: string;
@@ -48,6 +59,7 @@ interface CredentialRow {
   expires_on: string | null;
   created_at: string;
   tenant_id: string;
+  uploaded_by: string | null;
   provider_profiles: {
     id: string;
     display_name: string;
@@ -59,10 +71,12 @@ export default function AdminCredentialsReview({
   credentials: initial,
   tenantId,
   complianceRows,
+  userRolesById,
 }: {
   credentials: CredentialRow[];
   tenantId: string;
   complianceRows: ComplianceRow[];
+  userRolesById: Record<string, string>;
 }) {
   const supabase = createSupabaseBrowserClient();
   const [credentials, setCredentials] = useState<CredentialRow[]>(initial);
@@ -76,6 +90,14 @@ export default function AdminCredentialsReview({
   } | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [showExportOptions, setShowExportOptions] = useState(false);
+  const [selectedAudiences, setSelectedAudiences] = useState<
+    Record<ExportAudience, boolean>
+  >({
+    doctor: true,
+    billing: true,
+    credentialing: true,
+  });
 
   // Build unique provider list for filter
   const providerMap = new Map<string, string>();
@@ -91,6 +113,31 @@ export default function AdminCredentialsReview({
       filterProvider === "all" || c.provider_profiles?.id === filterProvider;
     return matchStatus && matchProvider;
   });
+
+  function getCredentialAudience(cred: CredentialRow): ExportAudience | null {
+    if (!cred.uploaded_by) return null;
+    const normalizedRole = normalizeTenantRole(userRolesById[cred.uploaded_by]);
+    if (
+      normalizedRole === "doctor" ||
+      normalizedRole === "billing" ||
+      normalizedRole === "credentialing"
+    ) {
+      return normalizedRole;
+    }
+    return null;
+  }
+
+  const audienceCounts: Record<ExportAudience, number> = {
+    doctor: 0,
+    billing: 0,
+    credentialing: 0,
+  };
+  for (const credential of filtered) {
+    const audience = getCredentialAudience(credential);
+    if (audience) {
+      audienceCounts[audience] += 1;
+    }
+  }
 
   async function handleReview(
     credId: string,
@@ -166,9 +213,32 @@ export default function AdminCredentialsReview({
     setExporting(true);
 
     try {
+      const selectedRoleSet = new Set<ExportAudience>(
+        EXPORT_AUDIENCE_OPTIONS.filter(
+          (option) => selectedAudiences[option.value],
+        ).map((option) => option.value),
+      );
+
+      if (selectedRoleSet.size === 0) {
+        throw new Error(
+          "Select at least one user group (providers, billers, or schedulers) to export.",
+        );
+      }
+
+      const exportCandidates = filtered.filter((cred) => {
+        const audience = getCredentialAudience(cred);
+        return audience ? selectedRoleSet.has(audience) : false;
+      });
+
+      if (exportCandidates.length === 0) {
+        throw new Error(
+          "No documents match the selected user group(s). Try selecting a different option.",
+        );
+      }
+
       const result = await exportCredentialDocuments({
         supabase,
-        documents: filtered.map((cred) => ({
+        documents: exportCandidates.map((cred) => ({
           id: cred.id,
           documentName: cred.document_name,
           storagePath: cred.storage_path,
@@ -184,6 +254,13 @@ export default function AdminCredentialsReview({
         setFileError(
           `Export finished with ${result.failed.length} failed download(s). Retry for missing files.`,
         );
+      } else {
+        const skippedCount = filtered.length - exportCandidates.length;
+        if (skippedCount > 0) {
+          setFileError(
+            `Exported ${result.total} document(s). Skipped ${skippedCount} document(s) outside selected user groups.`,
+          );
+        }
       }
     } catch (err) {
       setFileError(err instanceof Error ? err.message : "Export failed.");
@@ -365,10 +442,12 @@ export default function AdminCredentialsReview({
           <h1 style={{ marginTop: 0, marginBottom: 0 }}>Credential Review</h1>
           <button
             className="btn btn-secondary"
-            onClick={handleExportAll}
+            onClick={() => setShowExportOptions((prev) => !prev)}
             disabled={exporting || filtered.length === 0}
           >
-            {exporting ? "Exporting…" : "Document Export Engine"}
+            {showExportOptions
+              ? "Hide Export Options"
+              : "Document Export Engine"}
           </button>
         </div>
         <p style={{ color: "var(--muted)", marginTop: 0 }}>
@@ -439,6 +518,59 @@ export default function AdminCredentialsReview({
             ))}
           </select>
         </div>
+
+        {showExportOptions && (
+          <div
+            style={{
+              marginBottom: 12,
+              padding: 12,
+              borderRadius: 10,
+              border: "1px solid var(--line)",
+              background: "#f8fafc",
+              display: "grid",
+              gap: 10,
+            }}
+          >
+            <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
+              Choose which user documents to include in this export.
+            </p>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              {EXPORT_AUDIENCE_OPTIONS.map((option) => (
+                <label
+                  key={option.value}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 13,
+                    color: "var(--muted)",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedAudiences[option.value]}
+                    onChange={(event) =>
+                      setSelectedAudiences((prev) => ({
+                        ...prev,
+                        [option.value]: event.target.checked,
+                      }))
+                    }
+                  />
+                  {option.label} ({audienceCounts[option.value]})
+                </label>
+              ))}
+            </div>
+            <div>
+              <button
+                className="btn btn-secondary"
+                onClick={handleExportAll}
+                disabled={exporting || filtered.length === 0}
+              >
+                {exporting ? "Exporting…" : "Export Selected Documents"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {fileError && (
           <p style={{ margin: "0 0 12px", color: "var(--warning)" }}>
