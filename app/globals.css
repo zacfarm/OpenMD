@@ -225,6 +225,19 @@ a.card:hover {
   transform: translateY(-1px);
 }
 
+.app-nav-link.is-active {
+  background: #dfeee7;
+  border-color: #b8d5ca;
+  color: #163c31;
+  font-weight: 700;
+}
+
+.app-nav-dropdown-link.is-active {
+  background: #e8f4ee;
+  color: #163c31;
+  font-weight: 700;
+}
+
 .app-nav-link-notifications {
   font-weight: 700;
 }
@@ -570,7 +583,7 @@ a.card:hover {
 }
 
 .auth-shell {
-  padding: 48px 0;
+  padding: clamp(20px, 5vw, 64px) 0;
 }
 
 .auth-grid {
@@ -593,7 +606,7 @@ a.card:hover {
       transparent 40%
     ),
     linear-gradient(150deg, #0f5f47 0%, #0d4f3d 50%, #1b2f44 100%);
-  padding: 26px 24px;
+  padding: clamp(18px, 3.5vw, 26px) clamp(16px, 3vw, 24px);
   box-shadow: 0 20px 35px rgba(16, 48, 39, 0.24);
 }
 
@@ -621,8 +634,8 @@ a.card:hover {
   max-width: 720px;
   margin: 0 auto;
   width: 100%;
-  padding: 28px;
-  border-radius: 24px;
+  padding: clamp(16px, 3.8vw, 30px);
+  border-radius: clamp(16px, 3vw, 24px);
   box-shadow: 0 18px 34px rgba(17, 35, 29, 0.08);
 }
 
@@ -672,12 +685,14 @@ a.card:hover {
   font-weight: 600;
   color: #27433a;
   font-size: 0.95rem;
+  min-width: 0;
 }
 
 .auth-input {
   border-radius: 12px;
   border-color: #b8d1c7;
   padding: 12px 13px;
+  min-height: 44px;
   transition:
     border-color 120ms ease,
     box-shadow 120ms ease,
@@ -697,6 +712,7 @@ a.card:hover {
   padding: 11px 16px;
   font-weight: 700;
   letter-spacing: 0.02em;
+  width: 100%;
 }
 
 .auth-submit:disabled {
@@ -741,11 +757,13 @@ a.card:hover {
   text-decoration: underline;
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
+  overflow-wrap: anywhere;
 }
 
 .auth-switch {
   margin: 0;
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .auth-switch a {
@@ -1288,5 +1306,40 @@ a.card:hover {
 
   .auth-split {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 959px) {
+  .auth-card {
+    order: 1;
+  }
+
+  .auth-aside {
+    order: 2;
+  }
+}
+
+@media (max-width: 520px) {
+  .auth-grid {
+    gap: 14px;
+  }
+
+  .auth-heading h1 {
+    font-size: clamp(1.3rem, 7vw, 1.65rem);
+    line-height: 1.2;
+  }
+
+  .auth-heading p {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .auth-form {
+    gap: 12px;
+  }
+
+  .auth-points {
+    gap: 6px;
+    font-size: 0.92rem;
   }
 }
