@@ -131,6 +131,9 @@ export default async function DashboardPage({
     { count: claimsCount },
     { count: teamCount },
     { count: openMarketplaceCount },
+    { data: officeLocationDirectoryRows },
+    { data: scheduleLocationRows },
+    { data: bookingLocationRows },
   ] = await Promise.all([
     activeMembership
       ? supabase
@@ -168,6 +171,39 @@ export default async function DashboardPage({
           .eq("tenant_id", activeMembership.tenant_id)
           .eq("status", "open")
       : Promise.resolve({ count: 0 } as { count: number }),
+    activeMembership
+      ? supabase
+          .from("tenant_schedule_locations")
+          .select("id,name,city,state")
+          .eq("tenant_id", activeMembership.tenant_id)
+      : Promise.resolve({
+          data: [] as Array<{
+            id: string;
+            name: string | null;
+            city: string | null;
+            state: string | null;
+          }>,
+        }),
+    activeMembership
+      ? supabase
+          .from("schedule_events")
+          .select("location_id,location")
+          .eq("tenant_id", activeMembership.tenant_id)
+          .limit(1500)
+      : Promise.resolve({
+          data: [] as Array<{
+            location_id: string | null;
+            location: string | null;
+          }>,
+        }),
+    activeMembership
+      ? supabase
+          .from("booking_requests")
+          .select("location")
+          .eq("requesting_tenant_id", activeMembership.tenant_id)
+          .not("location", "is", null)
+          .limit(1200)
+      : Promise.resolve({ data: [] as Array<{ location: string | null }> }),
   ]);
 
   const [{ data: openFacilityShifts }, { data: recentClaims }] =
@@ -322,6 +358,104 @@ export default async function DashboardPage({
     }
   }
 
+  const adminOverviewMetrics = [
+    { label: "Providers", count: providerCount ?? 0, color: "#0c7a5a" },
+    {
+      label: "Booking requests",
+      count: bookingCount ?? 0,
+      color: "#2d86ad",
+    },
+    { label: "Claims", count: claimsCount ?? 0, color: "#3a6ad9" },
+    { label: "Team members", count: teamCount ?? 0, color: "#7a9a3a" },
+    {
+      label: "Open marketplace posts",
+      count: openMarketplaceCount ?? 0,
+      color: "#b8782e",
+    },
+    {
+      label: "Unread alerts",
+      count: unreadCount ?? 0,
+      color: "#9a4f7e",
+    },
+  ];
+
+  const adminFocusBuckets = [
+    {
+      label: "Staffing",
+      count: (providerCount ?? 0) + (teamCount ?? 0),
+      color: "#0d7f5e",
+    },
+    {
+      label: "Operations",
+      count: (bookingCount ?? 0) + (openMarketplaceCount ?? 0),
+      color: "#276fbe",
+    },
+    {
+      label: "Revenue",
+      count: claimsCount ?? 0,
+      color: "#8b5fca",
+    },
+    {
+      label: "Attention needed",
+      count: unreadCount ?? 0,
+      color: "#ba5f33",
+    },
+  ];
+
+  const maxAdminOverviewMetric = Math.max(
+    ...adminOverviewMetrics.map((item) => item.count),
+    1,
+  );
+  const maxAdminFocusBucket = Math.max(
+    ...adminFocusBuckets.map((item) => item.count),
+    1,
+  );
+
+  const locationCountMap = new Map<string, number>();
+  const officeLocationLabelById = new Map<string, string>();
+  for (const row of officeLocationDirectoryRows ?? []) {
+    const name = String(row.name ?? "").trim();
+    const city = String(row.city ?? "").trim();
+    const state = String(row.state ?? "").trim();
+    const label = [name, city, state].filter(Boolean).join(", ");
+    if (row.id && label) {
+      officeLocationLabelById.set(row.id, label);
+    }
+  }
+
+  for (const row of scheduleLocationRows ?? []) {
+    const locationById = row.location_id
+      ? officeLocationLabelById.get(row.location_id)
+      : null;
+    const fallbackLocation = String(row.location ?? "").trim();
+    const rawLocation = locationById || fallbackLocation;
+    if (!rawLocation) continue;
+    const normalized = rawLocation.replace(/\s+/g, " ");
+    locationCountMap.set(
+      normalized,
+      (locationCountMap.get(normalized) ?? 0) + 1,
+    );
+  }
+
+  for (const row of bookingLocationRows ?? []) {
+    const rawLocation = String(row.location ?? "").trim();
+    if (!rawLocation) continue;
+    const normalized = rawLocation.replace(/\s+/g, " ");
+    locationCountMap.set(
+      normalized,
+      (locationCountMap.get(normalized) ?? 0) + 1,
+    );
+  }
+
+  const locationHeatmapData = Array.from(locationCountMap.entries())
+    .map(([location, count]) => ({ location, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 24);
+  const maxLocationHeat = Math.max(
+    ...locationHeatmapData.map((item) => item.count),
+    1,
+  );
+
   return (
     <section className="dashboard-shell">
       <article className="card dashboard-hero">
@@ -380,6 +514,125 @@ export default async function DashboardPage({
 
       {role === "admin" && (
         <section className="dashboard-two-col">
+          <article
+            className="card analytics-card"
+            style={{ gridColumn: "1 / -1" }}
+          >
+            <div className="section-head">
+              <div>
+                <h2 style={{ margin: 0 }}>Admin Dashboard Analytics</h2>
+                <p className="section-subtitle">
+                  Live graph view of core staffing, operations, and revenue
+                  signals.
+                </p>
+              </div>
+            </div>
+
+            <div className="analytics-chart-grid">
+              <article className="analytics-chart-card">
+                <h3 style={{ margin: "0 0 12px" }}>Core Volume by Domain</h3>
+                <div className="analytics-bar-list">
+                  {adminOverviewMetrics.map((item) => (
+                    <div key={item.label} className="analytics-bar-row">
+                      <div className="analytics-bar-topline">
+                        <span>{item.label}</span>
+                        <strong>{item.count}</strong>
+                      </div>
+                      <div className="analytics-bar-track" aria-hidden="true">
+                        <span
+                          className="analytics-bar-fill"
+                          style={{
+                            width: `${(item.count / maxAdminOverviewMetric) * 100}%`,
+                            backgroundColor: item.color,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </article>
+
+              <article className="analytics-chart-card">
+                <h3 style={{ margin: "0 0 12px" }}>Workload Focus Mix</h3>
+                <div
+                  className="analytics-column-wrap"
+                  role="img"
+                  aria-label="Column chart for admin focus areas"
+                >
+                  {adminFocusBuckets.map((bucket) => (
+                    <div key={bucket.label} className="analytics-column-item">
+                      <div className="analytics-column-value">
+                        {bucket.count}
+                      </div>
+                      <div
+                        className="analytics-column-track"
+                        aria-hidden="true"
+                      >
+                        <div
+                          className="analytics-column-fill"
+                          style={{
+                            height: `${(bucket.count / maxAdminFocusBucket) * 100}%`,
+                            backgroundColor: bucket.color,
+                          }}
+                        />
+                      </div>
+                      <div className="analytics-column-label">
+                        {bucket.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </article>
+
+              <article className="analytics-chart-card">
+                <h3 style={{ margin: "0 0 12px" }}>Office Location Heatmap</h3>
+                <p
+                  style={{
+                    margin: "0 0 10px",
+                    color: "var(--muted)",
+                    fontSize: 13,
+                  }}
+                >
+                  Darker tiles indicate office locations handling more patient
+                  cases.
+                </p>
+                {locationHeatmapData.length === 0 ? (
+                  <p style={{ margin: 0, color: "var(--muted)" }}>
+                    No office location case data found yet.
+                  </p>
+                ) : (
+                  <div
+                    className="analytics-heatmap-grid"
+                    role="img"
+                    aria-label="Office location heatmap by patient case volume"
+                  >
+                    {locationHeatmapData.map((item) => {
+                      const intensity = item.count / maxLocationHeat;
+                      return (
+                        <div
+                          key={item.location}
+                          className="analytics-heatmap-tile"
+                          style={{
+                            backgroundColor: `rgba(12, 122, 90, ${0.18 + intensity * 0.78})`,
+                            color: intensity > 0.55 ? "#f5fffa" : "#12382e",
+                          }}
+                          title={`${item.location}: ${item.count} patient cases`}
+                        >
+                          <span className="analytics-heatmap-location">
+                            {item.location}
+                          </span>
+                          <strong className="analytics-heatmap-count">
+                            {item.count}
+                          </strong>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </article>
+            </div>
+          </article>
+
           <article className="card" style={{ padding: 18 }}>
             <h2 style={{ marginTop: 0 }}>Operations overview</h2>
             <p style={{ marginTop: 0, color: "var(--muted)" }}>
