@@ -106,24 +106,41 @@ function ReviewForm({
         </label>
 
         {!!tagOptions.length && (
-          <label className="review-form-label">
-            <span>Tags (optional)</span>
-            <select
-              className="field review-tags-select"
-              name="tags"
-              multiple
-              size={Math.min(tagOptions.length, 6)}
+          <fieldset className="review-form-label" style={{ margin: 0 }}>
+            <legend>
+              <span>Tags (optional)</span>
+            </legend>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 8,
+                marginTop: 8,
+              }}
             >
               {tagOptions.map((tag) => (
-                <option key={tag.id} value={tag.slug}>
-                  {tag.label}
-                </option>
+                <label
+                  key={tag.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    border: "1px solid var(--line)",
+                    borderRadius: 10,
+                    padding: "8px 10px",
+                    background: "var(--surface-soft)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <input type="checkbox" name="tags" value={tag.slug} />
+                  <span>{tag.label}</span>
+                </label>
               ))}
-            </select>
+            </div>
             <small className="review-form-hint">
-              Use Ctrl/Cmd to select multiple tags.
+              Select one or more tags that match your experience.
             </small>
-          </label>
+          </fieldset>
         )}
 
         <label className="review-form-label">

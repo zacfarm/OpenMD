@@ -395,6 +395,243 @@ a.card:hover {
   background: #fbfdfc;
 }
 
+.admin-reports-card,
+.admin-tags-card {
+  padding: 22px;
+}
+
+.admin-reports-head,
+.admin-tags-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.admin-report-status-chips,
+.admin-tag-coverage-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-report-chip,
+.admin-tag-coverage-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid #d4dce2;
+  color: #49606d;
+  background: #f4f7fa;
+}
+
+.admin-report-chip-open {
+  color: #9a4d12;
+  border-color: #f3cda8;
+  background: #fff4e8;
+}
+
+.admin-report-chip-review {
+  color: #1b5b86;
+  border-color: #b8d9f5;
+  background: #edf6ff;
+}
+
+.admin-report-chip-resolved {
+  color: #0d6b50;
+  border-color: #b5e6d3;
+  background: #ebf9f2;
+}
+
+.admin-report-chip-dismissed {
+  color: #4e6270;
+  border-color: #d2dce2;
+  background: #f2f5f7;
+}
+
+.admin-reports-list {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-report-item {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--surface-soft);
+}
+
+.admin-report-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-report-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-report-time {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.admin-report-entity {
+  color: var(--muted);
+  align-self: center;
+}
+
+.admin-report-entity-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.admin-report-entity-link:hover {
+  text-decoration: underline;
+}
+
+.admin-report-review-box {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.admin-report-review-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-report-details-box {
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.admin-report-controls {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(160px, 1fr) 2fr auto;
+}
+
+.admin-report-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+
+.admin-tag-create-form {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-tag-groups {
+  margin-top: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.admin-tag-group {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fbfdfc;
+}
+
+.admin-tag-group-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.admin-tag-group-count {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-tag-items {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-tag-item {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(150px, 1.2fr) minmax(120px, 1fr) auto;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.admin-tag-item-main {
+  display: grid;
+  gap: 2px;
+}
+
+@media (max-width: 880px) {
+  .admin-report-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-tag-create-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-tag-item {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-reports-card,
+  .admin-tags-card {
+    padding: 16px;
+  }
+
+  .admin-report-item {
+    padding: 12px;
+  }
+
+  .admin-report-topline {
+    display: grid;
+    gap: 8px;
+  }
+
+  .admin-report-badges {
+    gap: 6px;
+  }
+
+  .admin-report-time {
+    font-size: 12px;
+  }
+
+  .admin-report-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-tag-create-form {
+    grid-template-columns: 1fr;
+  }
+}
+
 .dashboard-shift-row {
   border-top: 1px solid var(--line);
   padding-top: 10px;

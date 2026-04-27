@@ -3,7 +3,21 @@ import { redirect } from "next/navigation";
 
 import { slugify } from "@/lib/openmd";
 import { getGlobalAdminAccess } from "@/lib/openmdAdmin";
+import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+
+const ADMIN_NOTICE_MESSAGES: Record<string, string> = {
+  report_saved: "Report status updated.",
+  review_kept: "Review kept. Report marked as dismissed.",
+  review_deleted: "Review deleted successfully.",
+};
+
+const ADMIN_ERROR_MESSAGES: Record<string, string> = {
+  invalid_action: "Invalid moderation action.",
+  missing_review: "The related review could not be found.",
+  update_failed: "Could not save moderation changes.",
+  delete_failed: "Could not delete the review.",
+};
 
 async function claimGlobalAdmin() {
   "use server";
@@ -96,10 +110,18 @@ async function updateReportStatus(formData: FormData) {
 
   const id = String(formData.get("id") || "");
   const status = String(formData.get("status") || "");
+  const moderationAction = String(formData.get("moderationAction") || "");
+  const reviewId = String(formData.get("reviewId") || "");
+  const sourcePath = String(formData.get("sourcePath") || "").trim() || null;
+  const entityPath = String(formData.get("entityPath") || "").trim() || null;
   const adminNotes = String(formData.get("adminNotes") || "").trim() || null;
 
   if (!id || !["open", "in_review", "resolved", "dismissed"].includes(status)) {
-    redirect("/admin");
+    redirect("/admin?error=invalid_action");
+  }
+
+  if (moderationAction && !["keep", "delete"].includes(moderationAction)) {
+    redirect("/admin?error=invalid_action");
   }
 
   const supabase = await createSupabaseServerClient();
@@ -107,7 +129,79 @@ async function updateReportStatus(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  await supabase
+  if (moderationAction === "delete") {
+    if (!reviewId) {
+      redirect("/admin?error=missing_review");
+    }
+
+    const supabaseAdmin = createSupabaseAdminClient();
+    const { data: reviewRow } = await supabaseAdmin
+      .from("directory_reviews")
+      .select("entity_id")
+      .eq("id", reviewId)
+      .maybeSingle();
+
+    let resolvedEntityPath: string | null = entityPath;
+    if (reviewRow?.entity_id) {
+      const { data: entityRow } = await supabaseAdmin
+        .from("directory_entities")
+        .select("entity_type,slug")
+        .eq("id", reviewRow.entity_id)
+        .maybeSingle();
+
+      if (entityRow?.entity_type && entityRow?.slug) {
+        resolvedEntityPath = `/directory/${entityRow.entity_type}/${entityRow.slug}`;
+      }
+    }
+
+    const { error: deleteError } = await supabaseAdmin
+      .from("directory_reviews")
+      .delete()
+      .eq("id", reviewId);
+
+    if (deleteError) {
+      redirect("/admin?error=delete_failed");
+    }
+
+    revalidatePath("/admin");
+    revalidatePath("/");
+    if (sourcePath) {
+      revalidatePath(sourcePath);
+    }
+    if (resolvedEntityPath && resolvedEntityPath !== sourcePath) {
+      revalidatePath(resolvedEntityPath);
+    }
+    redirect("/admin?notice=review_deleted");
+  }
+
+  if (moderationAction === "keep") {
+    const { error: keepError } = await supabase
+      .from("directory_review_reports")
+      .update({
+        status: "dismissed",
+        admin_notes:
+          adminNotes ??
+          "Reviewed by admin and kept. No policy violation found.",
+        reviewed_by: user?.id ?? null,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (keepError) {
+      redirect("/admin?error=update_failed");
+    }
+
+    revalidatePath("/admin");
+    if (sourcePath) {
+      revalidatePath(sourcePath);
+    }
+    if (entityPath && entityPath !== sourcePath) {
+      revalidatePath(entityPath);
+    }
+    redirect("/admin?notice=review_kept");
+  }
+
+  const { error: saveError } = await supabase
     .from("directory_review_reports")
     .update({
       status,
@@ -117,12 +211,33 @@ async function updateReportStatus(formData: FormData) {
     })
     .eq("id", id);
 
+  if (saveError) {
+    redirect("/admin?error=update_failed");
+  }
+
   revalidatePath("/admin");
-  redirect("/admin");
+  if (sourcePath) {
+    revalidatePath(sourcePath);
+  }
+  if (entityPath && entityPath !== sourcePath) {
+    revalidatePath(entityPath);
+  }
+  redirect("/admin?notice=report_saved");
 }
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ notice?: string; error?: string }>;
+}) {
   const access = await getGlobalAdminAccess();
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const noticeMessage = resolvedSearchParams.notice
+    ? (ADMIN_NOTICE_MESSAGES[resolvedSearchParams.notice] ?? null)
+    : null;
+  const errorMessage = resolvedSearchParams.error
+    ? (ADMIN_ERROR_MESSAGES[resolvedSearchParams.error] ?? null)
+    : null;
 
   if (!access.isGlobalAdmin && !access.needsBootstrap) {
     redirect("/dashboard");
@@ -281,6 +396,36 @@ export default async function AdminPage() {
     maximumFractionDigits: 1,
   });
 
+  const reportStatusMeta: Record<
+    "open" | "in_review" | "resolved" | "dismissed",
+    { label: string; fg: string; bg: string; border: string }
+  > = {
+    open: {
+      label: "Open",
+      fg: "#9a4d12",
+      bg: "#fff4e8",
+      border: "#f3cda8",
+    },
+    in_review: {
+      label: "In review",
+      fg: "#1b5b86",
+      bg: "#edf6ff",
+      border: "#b8d9f5",
+    },
+    resolved: {
+      label: "Resolved",
+      fg: "#0d6b50",
+      bg: "#ebf9f2",
+      border: "#b5e6d3",
+    },
+    dismissed: {
+      label: "Dismissed",
+      fg: "#4e6270",
+      bg: "#f2f5f7",
+      border: "#d2dce2",
+    },
+  };
+
   return (
     <section style={{ display: "grid", gap: 16 }}>
       <article className="card" style={{ padding: 22 }}>
@@ -290,6 +435,28 @@ export default async function AdminPage() {
           the full OpenMD directory.
         </p>
       </article>
+
+      {(noticeMessage || errorMessage) && (
+        <article
+          className="card"
+          style={{
+            padding: 16,
+            borderColor: errorMessage ? "#b44a2e66" : "#0f816066",
+            background: errorMessage ? "#fff6f4" : "#f2fbf8",
+          }}
+        >
+          {noticeMessage && (
+            <p style={{ margin: 0, color: "#0f8160", fontWeight: 600 }}>
+              {noticeMessage}
+            </p>
+          )}
+          {errorMessage && (
+            <p style={{ margin: 0, color: "#b44a2e", fontWeight: 600 }}>
+              {errorMessage}
+            </p>
+          )}
+        </article>
+      )}
 
       <article className="card analytics-card">
         <div className="section-head">
@@ -446,21 +613,225 @@ export default async function AdminPage() {
         </div>
       </article>
 
-      <article className="card" style={{ padding: 22 }}>
-        <h2 style={{ marginTop: 0 }}>Review tags</h2>
-        <p style={{ color: "var(--muted)" }}>
-          Tags are scoped by entity type so provider reviews and organization
-          reviews stay distinct.
-        </p>
+      <article className="card admin-reports-card">
+        <div className="admin-reports-head">
+          <div>
+            <h2 style={{ marginTop: 0 }}>Reported reviews</h2>
+            <p style={{ color: "var(--muted)", marginTop: 0 }}>
+              Prioritize open reports, review context, then keep or remove
+              public reviews.
+            </p>
+          </div>
+          <div className="admin-report-status-chips" aria-hidden="true">
+            <span className="admin-report-chip admin-report-chip-open">
+              Open {openReports}
+            </span>
+            <span className="admin-report-chip admin-report-chip-review">
+              In review {inReviewReports}
+            </span>
+            <span className="admin-report-chip admin-report-chip-resolved">
+              Resolved {resolvedReports}
+            </span>
+            <span className="admin-report-chip admin-report-chip-dismissed">
+              Dismissed {dismissedReports}
+            </span>
+          </div>
+        </div>
+        <div className="admin-reports-list">
+          {(reports ?? []).map((report) => {
+            const relatedReview = Array.isArray(report.directory_reviews)
+              ? report.directory_reviews[0]
+              : report.directory_reviews;
+            const relatedEntity = Array.isArray(
+              relatedReview?.directory_entities,
+            )
+              ? relatedReview?.directory_entities[0]
+              : relatedReview?.directory_entities;
+            const statusKey = (
+              ["open", "in_review", "resolved", "dismissed"].includes(
+                report.status,
+              )
+                ? report.status
+                : "open"
+            ) as "open" | "in_review" | "resolved" | "dismissed";
+            const statusUi = reportStatusMeta[statusKey];
 
-        <form
-          action={createTagOption}
-          style={{
-            display: "grid",
-            gap: 10,
-            gridTemplateColumns: "1fr 1fr 1fr auto",
-          }}
-        >
+            return (
+              <form
+                key={report.id}
+                action={updateReportStatus}
+                className="admin-report-item"
+              >
+                <input type="hidden" name="id" value={report.id} />
+                <input type="hidden" name="reviewId" value={report.review_id} />
+                <input
+                  type="hidden"
+                  name="sourcePath"
+                  value={report.source_path ?? ""}
+                />
+                <input
+                  type="hidden"
+                  name="entityPath"
+                  value={
+                    relatedEntity
+                      ? `/directory/${relatedEntity.entity_type}/${relatedEntity.slug}`
+                      : ""
+                  }
+                />
+                <div className="admin-report-topline">
+                  <div>
+                    <div className="admin-report-badges">
+                      <span
+                        style={{
+                          padding: "4px 10px",
+                          borderRadius: 999,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          border: `1px solid ${statusUi.border}`,
+                          color: statusUi.fg,
+                          background: statusUi.bg,
+                        }}
+                      >
+                        {statusUi.label}
+                      </span>
+                      <span
+                        style={{
+                          padding: "4px 10px",
+                          borderRadius: 999,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: "#6a7280",
+                          background: "#eef1f4",
+                          border: "1px solid #d8dee5",
+                        }}
+                      >
+                        Reason: {report.reason}
+                      </span>
+                    </div>
+                    <p className="admin-report-time">
+                      {new Date(report.created_at).toLocaleString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                  <div className="admin-report-entity">
+                    {relatedEntity ? (
+                      <a
+                        href={`/directory/${relatedEntity.entity_type}/${relatedEntity.slug}`}
+                        className="admin-report-entity-link"
+                      >
+                        {relatedEntity.name}
+                      </a>
+                    ) : (
+                      "Unknown entity"
+                    )}
+                  </div>
+                </div>
+
+                {relatedReview && (
+                  <div className="admin-report-review-box">
+                    <div className="admin-report-review-meta">
+                      <p style={{ margin: 0, fontWeight: 700 }}>
+                        Review rating: {relatedReview.star_rating} / 5
+                      </p>
+                      <p style={{ margin: 0, color: "var(--muted)" }}>
+                        Review ID: {relatedReview.id}
+                      </p>
+                    </div>
+                    {relatedReview.comment && (
+                      <p style={{ margin: "8px 0 0" }}>
+                        {relatedReview.comment}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {report.details && (
+                  <div className="admin-report-details-box">
+                    <p
+                      style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}
+                    >
+                      Reporter details
+                    </p>
+                    <p style={{ margin: "4px 0 0" }}>{report.details}</p>
+                  </div>
+                )}
+
+                <div className="admin-report-controls">
+                  <select
+                    className="field"
+                    name="status"
+                    defaultValue={report.status}
+                  >
+                    <option value="open">Open</option>
+                    <option value="in_review">In review</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="dismissed">Dismissed</option>
+                  </select>
+                  <input
+                    className="field"
+                    name="adminNotes"
+                    defaultValue={report.admin_notes ?? ""}
+                    placeholder="Admin notes"
+                  />
+                  <button className="btn btn-secondary" type="submit">
+                    Save
+                  </button>
+                </div>
+
+                <div className="admin-report-actions">
+                  <button
+                    className="btn btn-secondary"
+                    type="submit"
+                    name="moderationAction"
+                    value="keep"
+                  >
+                    Keep Review
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    style={{ background: "#b44a2e" }}
+                    type="submit"
+                    name="moderationAction"
+                    value="delete"
+                    disabled={!relatedReview}
+                  >
+                    Delete Review
+                  </button>
+                </div>
+              </form>
+            );
+          })}
+
+          {!reports?.length && (
+            <p style={{ margin: 0, color: "var(--muted)" }}>No reports yet.</p>
+          )}
+        </div>
+      </article>
+
+      <article className="card admin-tags-card">
+        <div className="admin-tags-head">
+          <div>
+            <h2 style={{ marginTop: 0 }}>Review tags</h2>
+            <p style={{ color: "var(--muted)", marginTop: 0 }}>
+              Tags are scoped by entity type so provider reviews and
+              organization reviews stay distinct.
+            </p>
+          </div>
+          <div className="admin-tag-coverage-pills" aria-hidden="true">
+            {tagTypeCoverage.map((item) => (
+              <span key={item.label} className="admin-tag-coverage-pill">
+                {item.label}: {item.active}/{item.total}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <form action={createTagOption} className="admin-tag-create-form">
           <select className="field" name="entityType" defaultValue="doctor">
             <option value="doctor">Doctor</option>
             <option value="practice">Practice</option>
@@ -482,31 +853,29 @@ export default async function AdminPage() {
           </button>
         </form>
 
-        <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
+        <div className="admin-tag-groups">
           {(["doctor", "practice", "facility"] as const).map((entityType) => (
-            <div key={entityType}>
-              <h3 style={{ marginBottom: 8, textTransform: "capitalize" }}>
-                {entityType} tags
-              </h3>
-              <div style={{ display: "grid", gap: 8 }}>
+            <section key={entityType} className="admin-tag-group">
+              <div className="admin-tag-group-head">
+                <h3 style={{ margin: 0, textTransform: "capitalize" }}>
+                  {entityType} tags
+                </h3>
+                <span className="admin-tag-group-count">
+                  {groupedTags[entityType].length} total
+                </span>
+              </div>
+              <div className="admin-tag-items">
                 {groupedTags[entityType].map((tag) => (
                   <form
                     key={tag.id}
                     action={updateTagStatus}
-                    style={{
-                      display: "grid",
-                      gap: 10,
-                      gridTemplateColumns: "1.2fr 1fr 1fr auto",
-                      alignItems: "center",
-                      borderTop: "1px solid var(--line)",
-                      paddingTop: 10,
-                    }}
+                    className="admin-tag-item"
                   >
                     <input type="hidden" name="id" value={tag.id} />
-                    <div>
+                    <div className="admin-tag-item-main">
                       <strong>{tag.label}</strong>
+                      <span style={{ color: "var(--muted)" }}>{tag.slug}</span>
                     </div>
-                    <div style={{ color: "var(--muted)" }}>{tag.slug}</div>
                     <select
                       className="field"
                       name="isActive"
@@ -521,128 +890,8 @@ export default async function AdminPage() {
                   </form>
                 ))}
               </div>
-            </div>
+            </section>
           ))}
-        </div>
-      </article>
-
-      <article className="card" style={{ padding: 22 }}>
-        <h2 style={{ marginTop: 0 }}>Reported reviews</h2>
-        <div style={{ display: "grid", gap: 14 }}>
-          {(reports ?? []).map((report) => {
-            const relatedReview = Array.isArray(report.directory_reviews)
-              ? report.directory_reviews[0]
-              : report.directory_reviews;
-            const relatedEntity = Array.isArray(
-              relatedReview?.directory_entities,
-            )
-              ? relatedReview?.directory_entities[0]
-              : relatedReview?.directory_entities;
-
-            return (
-              <form
-                key={report.id}
-                action={updateReportStatus}
-                style={{
-                  display: "grid",
-                  gap: 10,
-                  borderTop: "1px solid var(--line)",
-                  paddingTop: 12,
-                }}
-              >
-                <input type="hidden" name="id" value={report.id} />
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div>
-                    <strong>{report.reason}</strong>
-                    <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>
-                      {new Date(report.created_at).toLocaleString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  </div>
-                  <div style={{ color: "var(--muted)" }}>
-                    {relatedEntity ? (
-                      <a
-                        href={`/directory/${relatedEntity.entity_type}/${relatedEntity.slug}`}
-                        style={{ color: "var(--accent)" }}
-                      >
-                        {relatedEntity.name}
-                      </a>
-                    ) : (
-                      "Unknown entity"
-                    )}
-                  </div>
-                </div>
-
-                {relatedReview && (
-                  <div
-                    style={{
-                      background: "#f7fbf9",
-                      border: "1px solid var(--line)",
-                      borderRadius: 12,
-                      padding: 12,
-                    }}
-                  >
-                    <p style={{ margin: 0, fontWeight: 700 }}>
-                      {relatedReview.star_rating} / 5
-                    </p>
-                    {relatedReview.comment && (
-                      <p style={{ margin: "8px 0 0" }}>
-                        {relatedReview.comment}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {report.details && (
-                  <p style={{ margin: 0 }}>{report.details}</p>
-                )}
-
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 10,
-                    gridTemplateColumns: "1fr 2fr auto",
-                  }}
-                >
-                  <select
-                    className="field"
-                    name="status"
-                    defaultValue={report.status}
-                  >
-                    <option value="open">Open</option>
-                    <option value="in_review">In review</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="dismissed">Dismissed</option>
-                  </select>
-                  <input
-                    className="field"
-                    name="adminNotes"
-                    defaultValue={report.admin_notes ?? ""}
-                    placeholder="Admin notes"
-                  />
-                  <button className="btn btn-secondary" type="submit">
-                    Save
-                  </button>
-                </div>
-              </form>
-            );
-          })}
-
-          {!reports?.length && (
-            <p style={{ margin: 0, color: "var(--muted)" }}>No reports yet.</p>
-          )}
         </div>
       </article>
     </section>

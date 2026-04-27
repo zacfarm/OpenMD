@@ -255,9 +255,6 @@ export default async function Home({
               <Link className="btn btn-primary" href="#directory-results">
                 Explore Directory
               </Link>
-              <Link className="btn btn-secondary" href="/directory/practice">
-                View Public Profiles
-              </Link>
             </div>
 
             <div className="landing-stat-row">
