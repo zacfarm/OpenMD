@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 import AppNavDropdown from "@/components/navigation/AppNavDropdown";
 import { hasPermission, type TenantRole } from "@/lib/rbac";
+import { createSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 type Props = {
   role: string | null;
@@ -13,6 +15,7 @@ type Props = {
   needsBootstrap: boolean;
   unreadCount: number;
   messageUnreadCount: number;
+  userId: string;
 };
 
 function isPathActive(pathname: string, href: string) {
@@ -26,8 +29,58 @@ export default function ProtectedNav({
   needsBootstrap,
   unreadCount,
   messageUnreadCount,
+  userId,
 }: Props) {
   const pathname = usePathname() ?? "";
+  const [liveMessageUnreadCount, setLiveMessageUnreadCount] =
+    useState(messageUnreadCount);
+
+  useEffect(() => {
+    setLiveMessageUnreadCount(messageUnreadCount);
+  }, [messageUnreadCount]);
+
+  const refreshMessageUnreadCount = useCallback(async () => {
+    const supabase = createSupabaseBrowserClient();
+    const { data } = await supabase.rpc("unread_message_threads_count");
+
+    if (typeof data === "number") {
+      setLiveMessageUnreadCount(data);
+    }
+  }, []);
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    const channel = supabase
+      .channel("message-unread-count")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "message_thread_messages",
+        },
+        () => {
+          void refreshMessageUnreadCount();
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "message_conversation_participants",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          void refreshMessageUnreadCount();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refreshMessageUnreadCount, userId]);
   const navClass = (href: string, extra = "") => {
     const base = `app-nav-link${extra ? ` ${extra}` : ""}`;
     return isPathActive(pathname, href) ? `${base} is-active` : base;
@@ -95,8 +148,10 @@ export default function ProtectedNav({
         className={navClass("/messages", "app-nav-link-notifications")}
       >
         Conversation
-        {messageUnreadCount > 0 && (
-          <span className="app-notification-count">{messageUnreadCount}</span>
+        {liveMessageUnreadCount > 0 && (
+          <span className="app-notification-count">
+            {liveMessageUnreadCount}
+          </span>
         )}
       </Link>
       {hasPermission(role, "view_credentials") &&

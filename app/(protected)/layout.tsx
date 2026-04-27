@@ -96,6 +96,7 @@ export default async function ProtectedLayout({
             messageUnreadCount={
               typeof messageUnreadCount === "number" ? messageUnreadCount : 0
             }
+            userId={user.id}
           />
 
           <div className="app-header-actions">
