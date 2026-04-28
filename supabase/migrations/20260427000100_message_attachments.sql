@@ -1,8 +1,6 @@
--- ============================================================
 -- Message Attachments
---
+
 -- Adds optional file attachments for direct message threads.
--- ============================================================
 
 insert into storage.buckets (id, name, public)
 values ('message-attachments', 'message-attachments', false)

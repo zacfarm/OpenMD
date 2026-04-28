@@ -144,8 +144,17 @@ function ReviewForm({
         )}
 
         <label className="review-form-label">
-          <span>Comment (optional, 20-800 chars)</span>
-          <textarea name="comment" className="field" rows={4} maxLength={800} />
+          <span>Comment (optional, minimum 20 characters, max 800)</span>
+          <textarea
+            name="comment"
+            className="field"
+            rows={4}
+            maxLength={800}
+            minLength={20}
+          />
+          <small className="review-form-hint">
+            Your comment must be at least 20 characters to be saved.
+          </small>
         </label>
 
         <div className="review-form-actions">
@@ -209,7 +218,15 @@ function ReviewList({
               </p>
             </div>
             {!!review.tags?.length && (
-              <div className="tag-list" style={{ marginTop: 10 }}>
+              <div
+                className="tag-list"
+                style={{
+                  marginTop: 10,
+                  display: "flex",
+                  gap: 6,
+                  flexWrap: "wrap",
+                }}
+              >
                 {review.tags.map((tag) => (
                   <span className="tag-chip" key={tag}>
                     {tagLabelMap.get(tag) ?? formatTagLabel(tag)}
@@ -218,17 +235,39 @@ function ReviewList({
               </div>
             )}
             {review.comment && (
-              <p style={{ margin: "8px 0 0" }}>{review.comment}</p>
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: 12,
+                  background: "var(--surface-soft)",
+                  borderRadius: 8,
+                  borderLeft: "3px solid var(--accent)",
+                }}
+              >
+                <p
+                  style={{
+                    margin: 0,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {review.comment}
+                </p>
+              </div>
             )}
 
             <form
               action="/api/review-reports"
               method="post"
               className="review-report-form"
+              style={{ marginTop: 16 }}
             >
               <input type="hidden" name="reviewId" value={review.id} />
               <input type="hidden" name="sourcePath" value={entityPath} />
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 10 }}
+              >
                 <select
                   name="reason"
                   className="field"
@@ -238,20 +277,26 @@ function ReviewList({
                 >
                   {REPORT_REASONS.map((reason) => (
                     <option key={reason.value} value={reason.value}>
-                      Report: {reason.label}
+                      {reason.label}
                     </option>
                   ))}
                 </select>
-                <button className="btn btn-secondary" type="submit">
-                  Report review
-                </button>
+                <textarea
+                  className="field"
+                  name="details"
+                  rows={2}
+                  placeholder="Optional notes for OpenMD admins"
+                />
+                <div>
+                  <button
+                    className="btn btn-secondary"
+                    type="submit"
+                    style={{ background: "var(--accent)", color: "white" }}
+                  >
+                    Report
+                  </button>
+                </div>
               </div>
-              <textarea
-                className="field"
-                name="details"
-                rows={2}
-                placeholder="Optional notes for OpenMD admins"
-              />
             </form>
           </article>
         ))}

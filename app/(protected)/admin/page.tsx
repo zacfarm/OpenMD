@@ -467,9 +467,19 @@ export default async function AdminPage({
               directory.
             </p>
           </div>
-          <p style={{ margin: 0, color: "var(--muted)" }}>
-            {compactNumber.format(totalReports)} total reports
-          </p>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <p style={{ margin: 0, color: "var(--muted)" }}>
+              {compactNumber.format(totalReports)} total reports
+            </p>
+            <a
+              href="/api/admin/analytics-report"
+              className="btn btn-secondary"
+              style={{ textDecoration: "none" }}
+              download
+            >
+              Download Report
+            </a>
+          </div>
         </div>
 
         <div className="analytics-kpi-grid">
@@ -498,6 +508,98 @@ export default async function AdminPage({
         <div className="analytics-chart-grid">
           <article className="analytics-chart-card">
             <h3 style={{ margin: "0 0 12px" }}>Status Distribution</h3>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 16,
+              }}
+            >
+              <div>
+                <svg
+                  width="180"
+                  height="180"
+                  viewBox="0 0 180 180"
+                  style={{ margin: "0 auto", display: "block" }}
+                >
+                  {(() => {
+                    const total = statusBuckets.reduce(
+                      (sum, item) => sum + item.count,
+                      0,
+                    );
+                    if (total === 0) {
+                      return <circle cx="90" cy="90" r="70" fill="#e5e5e5" />;
+                    }
+
+                    let currentAngle = -Math.PI / 2;
+                    return statusBuckets.map((item, index) => {
+                      const sliceAngle = (item.count / total) * 2 * Math.PI;
+                      const startAngle = currentAngle;
+                      const endAngle = currentAngle + sliceAngle;
+
+                      const x1 = 90 + 70 * Math.cos(startAngle);
+                      const y1 = 90 + 70 * Math.sin(startAngle);
+                      const x2 = 90 + 70 * Math.cos(endAngle);
+                      const y2 = 90 + 70 * Math.sin(endAngle);
+
+                      const largeArc = sliceAngle > Math.PI ? 1 : 0;
+
+                      const pathData = [
+                        `M 90 90`,
+                        `L ${x1} ${y1}`,
+                        `A 70 70 0 ${largeArc} 1 ${x2} ${y2}`,
+                        "Z",
+                      ].join(" ");
+
+                      currentAngle = endAngle;
+
+                      return (
+                        <path
+                          key={item.label}
+                          d={pathData}
+                          fill={item.color}
+                          stroke="white"
+                          strokeWidth="2"
+                        />
+                      );
+                    });
+                  })()}
+                </svg>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                {statusBuckets.map((item) => (
+                  <div
+                    key={item.label}
+                    style={{ display: "flex", gap: 8, alignItems: "center" }}
+                  >
+                    <div
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: 3,
+                        backgroundColor: item.color,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                      {item.label}
+                    </span>
+                    <strong style={{ marginLeft: "auto" }}>{item.count}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </article>
+
+          <article className="analytics-chart-card">
+            <h3 style={{ margin: "0 0 12px" }}>Status Bars</h3>
             <div className="analytics-bar-list">
               {statusBuckets.map((item) => (
                 <div key={item.label} className="analytics-bar-row">
@@ -520,7 +622,7 @@ export default async function AdminPage({
           </article>
 
           <article className="analytics-chart-card">
-            <h3 style={{ margin: "0 0 12px" }}>Top Report Reasons</h3>
+            <h3 style={{ margin: "0 0 12px" }}>Report Reasons Distribution</h3>
             {!!topReasons.length ? (
               <div className="analytics-bar-list">
                 {topReasons.map((item) => (
@@ -582,32 +684,124 @@ export default async function AdminPage({
           </article>
 
           <article className="analytics-chart-card">
-            <h3 style={{ margin: "0 0 12px" }}>Tag Activation Coverage</h3>
-            <div className="analytics-bar-list">
-              {tagTypeCoverage.map((item) => {
-                const percentage =
-                  item.total > 0 ? (item.active / item.total) * 100 : 0;
+            <h3 style={{ margin: "0 0 12px" }}>Tag Coverage Overview</h3>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 16,
+              }}
+            >
+              <div>
+                <svg
+                  width="180"
+                  height="180"
+                  viewBox="0 0 180 180"
+                  style={{ margin: "0 auto", display: "block" }}
+                >
+                  {(() => {
+                    const total = tagTypeCoverage.reduce(
+                      (sum, item) => sum + item.total,
+                      0,
+                    );
+                    if (total === 0) {
+                      return <circle cx="90" cy="90" r="70" fill="#e5e5e5" />;
+                    }
 
-                return (
-                  <div key={item.label} className="analytics-bar-row">
-                    <div className="analytics-bar-topline">
-                      <span>{item.label}</span>
-                      <strong>
-                        {item.active}/{item.total}
-                      </strong>
-                    </div>
-                    <div className="analytics-bar-track" aria-hidden="true">
-                      <span
-                        className="analytics-bar-fill"
+                    const colors = ["#06b6d4", "#8b5cf6", "#f59e0b"];
+                    let currentAngle = -Math.PI / 2;
+
+                    return tagTypeCoverage.map((item, index) => {
+                      const sliceAngle = (item.total / total) * 2 * Math.PI;
+                      const startAngle = currentAngle;
+                      const endAngle = currentAngle + sliceAngle;
+
+                      const x1 = 90 + 70 * Math.cos(startAngle);
+                      const y1 = 90 + 70 * Math.sin(startAngle);
+                      const x2 = 90 + 70 * Math.cos(endAngle);
+                      const y2 = 90 + 70 * Math.sin(endAngle);
+
+                      const largeArc = sliceAngle > Math.PI ? 1 : 0;
+
+                      const pathData = [
+                        `M 90 90`,
+                        `L ${x1} ${y1}`,
+                        `A 70 70 0 ${largeArc} 1 ${x2} ${y2}`,
+                        "Z",
+                      ].join(" ");
+
+                      currentAngle = endAngle;
+
+                      return (
+                        <path
+                          key={item.label}
+                          d={pathData}
+                          fill={colors[index % colors.length]}
+                          stroke="white"
+                          strokeWidth="2"
+                        />
+                      );
+                    });
+                  })()}
+                </svg>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                {tagTypeCoverage.map((item, index) => {
+                  const colors = ["#06b6d4", "#8b5cf6", "#f59e0b"];
+                  const percentage =
+                    item.total > 0 ? (item.active / item.total) * 100 : 0;
+                  return (
+                    <div
+                      key={item.label}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 4,
+                      }}
+                    >
+                      <div
                         style={{
-                          width: `${percentage}%`,
-                          backgroundColor: "#3f9a7b",
+                          display: "flex",
+                          gap: 8,
+                          alignItems: "center",
                         }}
-                      />
+                      >
+                        <div
+                          style={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: 3,
+                            backgroundColor: colors[index % colors.length],
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                          {item.label}
+                        </span>
+                        <strong style={{ marginLeft: "auto" }}>
+                          {item.active}/{item.total}
+                        </strong>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "var(--muted)",
+                          marginLeft: 20,
+                        }}
+                      >
+                        {percentage.toFixed(1)}% active
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </article>
         </div>

@@ -555,32 +555,101 @@ export default async function DashboardPage({
               <article className="analytics-chart-card">
                 <h3 style={{ margin: "0 0 12px" }}>Workload Focus Mix</h3>
                 <div
-                  className="analytics-column-wrap"
-                  role="img"
-                  aria-label="Column chart for admin focus areas"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 16,
+                  }}
                 >
-                  {adminFocusBuckets.map((bucket) => (
-                    <div key={bucket.label} className="analytics-column-item">
-                      <div className="analytics-column-value">
-                        {bucket.count}
-                      </div>
+                  <div>
+                    <svg
+                      width="180"
+                      height="180"
+                      viewBox="0 0 180 180"
+                      style={{ margin: "0 auto", display: "block" }}
+                    >
+                      {(() => {
+                        const total = adminFocusBuckets.reduce(
+                          (sum, item) => sum + item.count,
+                          0,
+                        );
+                        if (total === 0) {
+                          return (
+                            <circle cx="90" cy="90" r="70" fill="#e5e5e5" />
+                          );
+                        }
+
+                        let currentAngle = -Math.PI / 2;
+                        return adminFocusBuckets.map((bucket) => {
+                          const sliceAngle =
+                            (bucket.count / total) * 2 * Math.PI;
+                          const startAngle = currentAngle;
+                          const endAngle = currentAngle + sliceAngle;
+
+                          const x1 = 90 + 70 * Math.cos(startAngle);
+                          const y1 = 90 + 70 * Math.sin(startAngle);
+                          const x2 = 90 + 70 * Math.cos(endAngle);
+                          const y2 = 90 + 70 * Math.sin(endAngle);
+
+                          const largeArc = sliceAngle > Math.PI ? 1 : 0;
+
+                          const pathData = [
+                            `M 90 90`,
+                            `L ${x1} ${y1}`,
+                            `A 70 70 0 ${largeArc} 1 ${x2} ${y2}`,
+                            "Z",
+                          ].join(" ");
+
+                          currentAngle = endAngle;
+
+                          return (
+                            <path
+                              key={bucket.label}
+                              d={pathData}
+                              fill={bucket.color}
+                              stroke="white"
+                              strokeWidth="2"
+                            />
+                          );
+                        });
+                      })()}
+                    </svg>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      gap: 8,
+                    }}
+                  >
+                    {adminFocusBuckets.map((bucket) => (
                       <div
-                        className="analytics-column-track"
-                        aria-hidden="true"
+                        key={bucket.label}
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          alignItems: "center",
+                        }}
                       >
                         <div
-                          className="analytics-column-fill"
                           style={{
-                            height: `${(bucket.count / maxAdminFocusBucket) * 100}%`,
+                            width: 12,
+                            height: 12,
+                            borderRadius: 3,
                             backgroundColor: bucket.color,
+                            flexShrink: 0,
                           }}
                         />
+                        <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                          {bucket.label}
+                        </span>
+                        <strong style={{ marginLeft: "auto" }}>
+                          {bucket.count}
+                        </strong>
                       </div>
-                      <div className="analytics-column-label">
-                        {bucket.label}
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </article>
 
