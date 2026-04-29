@@ -1,5 +1,6 @@
 import "./globals.css";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import Footer from "../components/Footer/Footer";
 
 export const metadata = {
   title: "OpenMD",
@@ -14,7 +15,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        {children}
+        <Footer />
+      </body>
     </html>
   );
 }

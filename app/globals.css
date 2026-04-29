@@ -130,9 +130,35 @@ a.card:hover {
 .app-brand {
   text-decoration: none;
   font-weight: 900;
-  letter-spacing: 0.02em;
-  font-size: 1.15rem;
+  letter-spacing: 0.03em;
+  font-size: 1.55rem;
+  line-height: 1;
   color: #0f5f47;
+  background: linear-gradient(
+    90deg,
+    #0c7a5a 0%,
+    #12a47a 28%,
+    #2b7fff 58%,
+    #d1971f 82%,
+    #ef5da8 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  position: relative;
+}
+
+.app-brand::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0c7a5a 0%, #2b7fff 50%, #ef5da8 100%);
+  opacity: 0.88;
 }
 
 .app-workspace-pill {
@@ -948,10 +974,37 @@ a.card:hover {
 
 .landing-topbar-brand {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.45rem;
   font-weight: 900;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
+  line-height: 1;
   color: #0a5d46;
+  background: linear-gradient(
+    90deg,
+    #0c7a5a 0%,
+    #12a47a 30%,
+    #2b7fff 60%,
+    #d1971f 82%,
+    #ef5da8 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  position: relative;
+  display: inline-block;
+}
+
+.landing-topbar-brand::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0c7a5a 0%, #2b7fff 50%, #ef5da8 100%);
+  opacity: 0.88;
 }
 
 .landing-topbar-sub {

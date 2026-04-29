@@ -1037,11 +1037,7 @@ export default async function AdminPage({
             placeholder="Visible tag label"
             required
           />
-          <input
-            className="field"
-            name="slug"
-            placeholder="Optional slug override"
-          />
+          <input className="field" name="slug" placeholder="Optional" />
           <button className="btn btn-primary" type="submit">
             Add tag
           </button>

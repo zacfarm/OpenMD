@@ -187,7 +187,8 @@ async function sendEmail(
       throw new Error("RESEND_API_KEY is not configured");
     }
 
-    const emailFrom = process.env.EMAIL_FROM || "onboarding@resend.dev";
+    const emailFrom =
+      process.env.EMAIL_FROM || "OpenMD <onboarding@resend.dev>";
     const resend = new Resend(process.env.RESEND_API_KEY);
     const result = await resend.emails.send({
       from: emailFrom,
