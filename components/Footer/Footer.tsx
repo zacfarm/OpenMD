@@ -35,12 +35,12 @@ export default function Footer() {
                   href="/privacy"
                   className="text-slate-300 hover:text-white"
                 >
-                  Privacy
+                  Privacy Policy
                 </Link>
               </li>
               <li>
                 <Link href="/terms" className="text-slate-300 hover:text-white">
-                  Terms
+                  Terms of Service
                 </Link>
               </li>
             </ul>
