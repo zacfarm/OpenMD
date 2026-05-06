@@ -1,34 +1,34 @@
-import { NextResponse } from 'next/server'
-import { Resend } from 'resend'
+import { NextResponse } from "next/server";
+import { Resend } from "resend";
 
-import { createSupabaseServerClient } from '@/lib/supabaseServer'
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
 export async function POST(req: Request) {
   try {
-    const { inviteEmail, inviteToken, roleLabel, tenantName } = await req.json()
+    const { inviteEmail, inviteToken, roleLabel, tenantName } =
+      await req.json();
 
     if (!inviteEmail || !inviteToken || !roleLabel || !tenantName) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
+        { error: "Missing required fields" },
+        { status: 400 },
+      );
     }
 
-    const supabase = await createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const appBaseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
-    const inviteUrl = `${appBaseUrl}/signup?inviteToken=${encodeURIComponent(inviteToken)}`
-    const subject = `OpenMD invite: ${roleLabel} - ${tenantName}`
+    const appBaseUrl = (
+      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    ).replace(/\/$/, "");
+    const inviteUrl = `${appBaseUrl}/signup?inviteToken=${encodeURIComponent(inviteToken)}`;
+    const subject = `OpenMD invite: ${roleLabel} - ${tenantName}`;
     const htmlBody = `
       <html>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -55,59 +55,76 @@ export async function POST(req: Request) {
           </div>
         </body>
       </html>
-    `
-    const textBody = `You have been invited to join ${tenantName} on OpenMD as a ${roleLabel}.\n\nUse this link to create your profile:\n${inviteUrl}\n\nThis link will expire in 48 hours.`
+    `;
+    const textBody = `You have been invited to join ${tenantName} on OpenMD as a ${roleLabel}.\n\nUse this link to create your profile:\n${inviteUrl}\n\nThis link will expire in 48 hours.`;
 
     // Send email using configured service
-    await sendEmailViaService(inviteEmail, subject, htmlBody, textBody)
+    await sendEmailViaService(inviteEmail, subject, htmlBody, textBody);
 
     return NextResponse.json({
       success: true,
-      message: 'Invite email sent successfully',
+      message: "Invite email sent successfully",
       details: {
         to: inviteEmail,
         subject,
       },
-    })
+    });
   } catch (error) {
-    console.error('Error sending invite email:', error)
+    console.error("Error sending invite email:", error);
     return NextResponse.json(
-      { error: 'Failed to send invite email' },
-      { status: 500 }
-    )
+      { error: "Failed to send invite email" },
+      { status: 500 },
+    );
   }
 }
 
-async function sendEmailViaService(to: string, subject: string, htmlBody: string, textBody: string) {
-  const emailService = process.env.EMAIL_SERVICE || 'console'
+async function sendEmailViaService(
+  to: string,
+  subject: string,
+  htmlBody: string,
+  textBody: string,
+) {
+  const emailService = process.env.EMAIL_SERVICE || "console";
 
-  if (emailService === 'resend') {
-    return sendViaResend(to, subject, htmlBody, textBody)
-  } else if (emailService === 'sendgrid') {
-    return sendViaSendGrid(to, subject, htmlBody, textBody)
-  } else if (emailService === 'aws-ses') {
-    return sendViaAwsSes(to, subject, htmlBody, textBody)
+  if (emailService === "resend") {
+    return sendViaResend(to, subject, htmlBody, textBody);
+  } else if (emailService === "sendgrid") {
+    return sendViaSendGrid(to, subject, htmlBody, textBody);
+  } else if (emailService === "aws-ses") {
+    return sendViaAwsSes(to, subject, htmlBody, textBody);
   } else {
     // Default: log to console for development
-    console.log('📧 Email notification (configure EMAIL_SERVICE to send real emails):')
-    console.log(`To: ${to}`)
-    console.log(`Subject: ${subject}`)
-    console.log(`\nHTML:\n${htmlBody}`)
-    console.log(`\nText:\n${textBody}`)
+    console.log(
+      "📧 Email notification (configure EMAIL_SERVICE to send real emails):",
+    );
+    console.log(`To: ${to}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`\nHTML:\n${htmlBody}`);
+    console.log(`\nText:\n${textBody}`);
   }
 }
 
-async function sendViaResend(to: string, subject: string, htmlBody: string, _textBody: string) {
-  const resend = new Resend(process.env.RESEND_API_KEY)
+async function sendViaResend(
+  to: string,
+  subject: string,
+  htmlBody: string,
+  _textBody: string,
+) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
   await resend.emails.send({
-    from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+    from: process.env.EMAIL_FROM || "OpenMD <onboarding@resend.dev>",
     to,
     subject,
     html: htmlBody,
-  })
+  });
 }
 
-async function sendViaSendGrid(to: string, subject: string, htmlBody: string, _textBody: string) {
+async function sendViaSendGrid(
+  to: string,
+  subject: string,
+  htmlBody: string,
+  _textBody: string,
+) {
   // Example: Using SendGrid (https://sendgrid.com)
   // Install: npm install @sendgrid/mail
   // Set: SENDGRID_API_KEY=your_key, EMAIL_SERVICE=sendgrid, EMAIL_FROM=noreply@yourapp.com
@@ -122,10 +139,15 @@ async function sendViaSendGrid(to: string, subject: string, htmlBody: string, _t
   //   html: htmlBody,
   // })
 
-  console.log(`[SendGrid] Would send email to ${to}`)
+  console.log(`[SendGrid] Would send email to ${to}`);
 }
 
-async function sendViaAwsSes(to: string, subject: string, htmlBody: string, textBody: string) {
+async function sendViaAwsSes(
+  to: string,
+  subject: string,
+  htmlBody: string,
+  textBody: string,
+) {
   // Example: Using AWS SES (https://aws.amazon.com/ses/)
   // Install: npm install @aws-sdk/client-ses
   // Set: EMAIL_SERVICE=aws-ses, EMAIL_FROM=verified-address@yourdomain.com
@@ -146,5 +168,5 @@ async function sendViaAwsSes(to: string, subject: string, htmlBody: string, text
   //   },
   // }))
 
-  console.log(`[AWS SES] Would send email to ${to}`)
+  console.log(`[AWS SES] Would send email to ${to}`);
 }

@@ -1,9 +1,9 @@
--- ============================================================
--- Secure Direct Messaging
---
+-- This migration adds tables, functions, and policies to support secure direct messaging between users.
+-- Secure Direct Messaging allows users to have 1:1 conversations with each other, with messages stored in threads under conversations.
+-- Conversations are scoped with RLS policies to ensure that only participants can access them, and that
 -- Adds user-to-user 1:1 messaging with RLS-scoped conversations,
 -- participant read state, contact search, and thread summaries.
--- ============================================================
+
 
 create table if not exists public.message_conversations (
   id uuid primary key default gen_random_uuid(),

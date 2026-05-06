@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import AppNavDropdown from "@/components/navigation/AppNavDropdown";
+import ProtectedNav from "@/components/navigation/ProtectedNav";
 import { getGlobalAdminAccess } from "@/lib/openmdAdmin";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
-import { hasPermission, getRoleLabel, normalizeTenantRole } from "@/lib/rbac";
+import { getRoleLabel, normalizeTenantRole } from "@/lib/rbac";
 
 export default async function ProtectedLayout({
   children,
@@ -87,92 +87,17 @@ export default async function ProtectedLayout({
             </span>
           </div>
 
-          <nav className="app-nav" aria-label="Primary">
-            <Link href="/dashboard" className="app-nav-link">
-              Dashboard
-            </Link>
-            {hasPermission(role, "view_bookings") &&
-              normalizedRole !== "billing" && (
-                <AppNavDropdown
-                  label="Scheduling"
-                  items={[
-                    { href: "/bookings", label: "Global Marketplace" },
-                    { href: "/schedule-cases", label: "Scheduled Cases" },
-                    ...(normalizedRole === "admin" ||
-                    normalizedRole === "facility_manager" ||
-                    normalizedRole === "credentialing"
-                      ? [{ href: "/scheduling/manage", label: "Manage" }]
-                      : []),
-                  ]}
-                />
-              )}
-            {hasPermission(role, "view_bookings") && (
-              <Link href="/calendar" className="app-nav-link">
-                Calendar
-              </Link>
-            )}
-            {hasPermission(role, "view_providers") &&
-              normalizedRole !== "billing" && (
-                <Link href="/providers" className="app-nav-link">
-                  Providers
-                </Link>
-              )}
-            {hasPermission(role, "view_billing") && (
-              <AppNavDropdown
-                label="Billing"
-                items={[
-                  {
-                    href: "/billing/service-tracker",
-                    label: "Billing Service Tracker",
-                  },
-                  {
-                    href: "/billing/claims",
-                    label: "Submit Claim and History",
-                  },
-                  { href: "/billing/payments", label: "Post Payment" },
-                ]}
-              />
-            )}
-            {hasPermission(role, "view_notifications") && (
-              <Link
-                href="/notifications"
-                className="app-nav-link app-nav-link-notifications"
-              >
-                Notifications
-                {unreadCount != null && unreadCount > 0 && (
-                  <span className="app-notification-count">{unreadCount}</span>
-                )}
-              </Link>
-            )}
-            <Link
-              href="/messages"
-              className="app-nav-link app-nav-link-notifications"
-            >
-              Conversation
-              {typeof messageUnreadCount === "number" &&
-                messageUnreadCount > 0 && (
-                  <span className="app-notification-count">
-                    {messageUnreadCount}
-                  </span>
-                )}
-            </Link>
-            {hasPermission(role, "view_credentials") &&
-              normalizedRole !== "credentialing" && (
-                <Link href="/credentials" className="app-nav-link">
-                  Credentials
-                </Link>
-              )}
-            {hasPermission(role, "manage_team") && (
-              <Link href="/settings/team" className="app-nav-link">
-                Team
-              </Link>
-            )}
-            {(adminAccess.isGlobalAdmin || adminAccess.needsBootstrap) && (
-              <Link href="/admin" className="app-nav-link">
-                Admin
-              </Link>
-            )}
-          </nav>
+          <ProtectedNav
+            role={role}
+            normalizedRole={normalizedRole}
+            isGlobalAdmin={adminAccess.isGlobalAdmin}
+            needsBootstrap={adminAccess.needsBootstrap}
+            unreadCount={unreadCount ?? 0}
+            messageUnreadCount={
+              typeof messageUnreadCount === "number" ? messageUnreadCount : 0
+            }
+            userId={user.id}
+          />
 
           <div className="app-header-actions">
             <Link
