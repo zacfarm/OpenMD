@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
@@ -15,8 +15,7 @@ import {
 export default function SignupPage() {
   const supabase = createSupabaseBrowserClient();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const inviteTokenFromQuery = searchParams.get("inviteToken")?.trim() ?? "";
+  const [inviteTokenFromQuery, setInviteTokenFromQuery] = useState("");
   const isInviteSignup = Boolean(inviteTokenFromQuery);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,14 +23,18 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
-    if (!inviteTokenFromQuery) return;
+    const params = new URLSearchParams(window.location.search);
+    const invite = params.get("inviteToken")?.trim() ?? "";
+    setInviteTokenFromQuery(invite);
+
+    if (!invite) return;
 
     void fetch("/api/invites/open", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inviteToken: inviteTokenFromQuery }),
+      body: JSON.stringify({ inviteToken: invite }),
     });
-  }, [inviteTokenFromQuery]);
+  }, []);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -135,19 +135,21 @@ async function updateReportStatus(formData: FormData) {
     }
 
     const supabaseAdmin = createSupabaseAdminClient();
-    const { data: reviewRow } = await supabaseAdmin
+    const { data } = await supabaseAdmin
       .from("directory_reviews")
       .select("entity_id")
       .eq("id", reviewId)
       .maybeSingle();
+    const reviewRow: any = data;
 
     let resolvedEntityPath: string | null = entityPath;
     if (reviewRow?.entity_id) {
-      const { data: entityRow } = await supabaseAdmin
+      const { data: entityRowData } = await supabaseAdmin
         .from("directory_entities")
         .select("entity_type,slug")
         .eq("id", reviewRow.entity_id)
         .maybeSingle();
+      const entityRow: any = entityRowData;
 
       if (entityRow?.entity_type && entityRow?.slug) {
         resolvedEntityPath = `/directory/${entityRow.entity_type}/${entityRow.slug}`;
