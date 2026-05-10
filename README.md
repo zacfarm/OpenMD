@@ -1,18 +1,53 @@
 # OpenMD
 
-OpenMD is a Next.js + Supabase web app focused on:
+OpenMD is a Next.js + Supabase platform for multi-tenant medical operations. It combines a public ratings directory with authenticated workspaces for scheduling, credentials, billing, messaging, and team management.
 
-1. Public ratings directory (no login required)
-2. Multi-tenant auth (practice, facility, independent doctor)
-3. Provider scheduling + time-off
-4. Global work marketplace workflow (facility requests + provider offers visible across all tenants)
-5. In-app notification center
-6. RBAC with Supabase RLS (`admin`, `scheduler`, `billing`, `provider`)
+## Apps and routes
+
+### Public
+
+- `/` Public ratings directory with search and filters.
+- `/directory/[entityType]/[slug]` Directory profiles with reviews and moderation.
+- `/contact` Contact form.
+- `/privacy`, `/terms`, `/hipaa` Legal and compliance pages.
+
+### Auth
+
+- `/login` Email/password sign-in.
+- `/signup` New org onboarding or invite-based signup.
+- `/forgot-password` Password reset request.
+- `/reset-password` Password reset completion.
+
+### Protected workspace
+
+- `/dashboard` Role-aware overview.
+- `/calendar` Schedule view for shifts and cases.
+- `/schedule-cases` Create and manage scheduling cases.
+- `/bookings` Global marketplace posts (facility requests, provider offers).
+- `/providers` Provider profiles and availability.
+- `/credentials` Provider compliance and credentialing review.
+- `/billing/*` Billing tracker, claims, payments, patient detail.
+- `/messages` In-app messaging with attachments.
+- `/notifications` Notification center.
+- `/settings/profile` Profile, preferences, and security audit logging.
+- `/settings/team` Team invites and role management.
+- `/settings/notifications` Notification preferences.
+
+### Admin
+
+- `/admin` Global admin review moderation and directory tag management.
+
+### API
+
+- `/api/contact` Contact form submission (email service integration).
+- `/api/calendar/events` Read calendar events.
+- `/api/schedule-events` Create and manage scheduling cases.
+- Additional API routes live under `app/api/*`.
 
 ## Stack
 
 - Next.js 14 (App Router)
-- JavaScript/TypeScript
+- TypeScript
 - Supabase Auth + Postgres + RLS
 
 ## Environment
@@ -24,11 +59,18 @@ NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 # Optional alias if your project uses publishable key naming
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
+
+# Contact form delivery
+EMAIL_SERVICE=console # console | resend | sendgrid | aws-ses
+CONTACT_EMAIL_TO=support@yourdomain.com
+EMAIL_FROM="OpenMD <onboarding@resend.dev>"
+EMAIL_REPLY_TO=inquiryopenmd@gmail.com
+RESEND_API_KEY=...
 ```
 
 ## Database setup
 
-Apply migration in `supabase/migrations/20260227000100_openmd_initial.sql` to your new Supabase project.
+Apply the migrations in `supabase/migrations/` to your Supabase project.
 
 If using Supabase CLI linked to the project:
 
@@ -50,6 +92,5 @@ Open [http://localhost:3000](http://localhost:3000)
 ## Notes
 
 - Public reviews are anonymous with PHI warning + validation.
-- Work postings are global across authenticated users, not tenant-isolated.
-- Email/SMS notifications are modeled as optional future extensions; MVP includes in-app notifications.
-- Invite flow is token-based for MVP and enforced by tenant admin role.
+- Marketplace posts are global across authenticated tenants.
+- RBAC is enforced via Supabase RLS and role checks in the app.
