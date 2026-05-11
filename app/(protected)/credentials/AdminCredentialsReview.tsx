@@ -99,7 +99,7 @@ export default function AdminCredentialsReview({
     credentialing: true,
   });
 
-  // Build unique provider list for filter
+  // Build the provider list for the filter.
   const providerMap = new Map<string, string>();
   credentials.forEach((c) => {
     if (c.provider_profiles) {
@@ -482,7 +482,7 @@ export default function AdminCredentialsReview({
           ))}
         </div>
 
-        {/* Filters */}
+        {/* Filter controls */}
         <div
           style={{
             display: "flex",
@@ -637,7 +637,7 @@ function CredentialReviewRow({
         paddingTop: 12,
       }}
     >
-      {/* Provider badge */}
+      {/* Provider label */}
       <p
         style={{
           margin: "0 0 6px",

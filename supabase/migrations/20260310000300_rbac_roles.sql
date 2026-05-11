@@ -1,12 +1,6 @@
--- =============================================================
--- RBAC Roles Migration
--- Introduces four distinct operational roles:
---   doctor          (renamed from provider)
---   credentialing   (renamed from scheduler)
---   facility_manager (new)
---   billing         (unchanged)
---   admin           (unchanged - full access)
--- =============================================================
+-- RBAC roles migration.
+-- Roles: doctor (from provider), credentialing (from scheduler),
+-- facility_manager (new), billing (unchanged), admin (full access).
 
 -- 1. Rename existing enum values in-place.
 --    PostgreSQL 10+: RENAME VALUE automatically updates every

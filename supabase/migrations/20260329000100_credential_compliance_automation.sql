@@ -1,11 +1,8 @@
--- ============================================================
--- Credential Compliance Automation
---
+-- Credential compliance automation.
 -- Enhances notify_expiring_credentials() to:
 -- 1) send reminders at 90/60/30/7 day thresholds
 -- 2) escalate 7-day reminders to tenant admins
 -- 3) detect missing required document types and notify staff/admin
--- ============================================================
 
 create or replace function public.notify_expiring_credentials()
 returns integer

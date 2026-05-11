@@ -1,6 +1,4 @@
--- ============================================================
--- Credential Alerts: Expiring + Missing Coverage
---
+-- Credential alerts: expiring and missing coverage.
 -- Updates notify_expiring_credentials() so daily cron can:
 -- 1) notify providers and credentialing staff of expiring credentials
 -- 2) notify credentialing staff when providers are missing active credentials

@@ -1,10 +1,6 @@
--- ============================================================
--- Push Subscriptions + Credential Expiry Function
--- ============================================================
+-- Push subscriptions and credential expiry helper.
 
--- ──────────────────────────────────────────────
 -- Push subscriptions (Web Push API)
--- ──────────────────────────────────────────────
 
 create table public.push_subscriptions (
   id         uuid        primary key default gen_random_uuid(),
@@ -30,12 +26,9 @@ create policy push_sub_upsert on public.push_subscriptions
 create policy push_sub_delete on public.push_subscriptions
   for delete using (user_id = auth.uid());
 
--- ──────────────────────────────────────────────
--- Credential expiry notifications
--- Called daily by /api/cron/credential-expiry
--- Notifies providers whose approved credentials expire in 30 or 7 days,
--- but only sends once per credential/threshold per day.
--- ──────────────────────────────────────────────
+-- Credential expiry notifications.
+-- Called daily by /api/cron/credential-expiry.
+-- Sends once per credential/threshold per day.
 
 create or replace function public.notify_expiring_credentials()
 returns integer

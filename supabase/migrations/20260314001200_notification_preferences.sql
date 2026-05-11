@@ -1,8 +1,5 @@
--- ============================================================
--- Notification Preferences
--- Per-user control over which event types trigger in-app
--- and email notifications.
--- ============================================================
+-- Notification preferences.
+-- Per-user control over which event types trigger in-app and email notifications.
 
 create table public.notification_preferences (
   id         uuid        primary key default gen_random_uuid(),
@@ -33,12 +30,8 @@ create policy notif_prefs_update on public.notification_preferences
 create policy notif_prefs_delete on public.notification_preferences
   for delete using (user_id = auth.uid());
 
--- ──────────────────────────────────────────────
--- Helper: fetch notifications pending email delivery
--- Called by the /api/cron/send-notification-emails route
--- Returns unread notifications created since `since_time`
--- for users who opted into email delivery for that event_type.
--- ──────────────────────────────────────────────
+-- Helper: fetch notifications pending email delivery.
+-- Used by /api/cron/send-notification-emails and scoped to users who opted in.
 
 create or replace function public.get_pending_email_notifications(since_time timestamptz)
 returns table (

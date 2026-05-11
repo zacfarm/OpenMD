@@ -1,7 +1,5 @@
-/**
- * Role-based notification filtering
- * Maps each tenant role to the event types that role should see
- */
+// Role-based notification filters.
+// Maps each tenant role to the event types they should see.
 
 export type TenantRole =
   | "admin"
@@ -67,9 +65,7 @@ export const ROLE_EVENT_TYPES: Record<TenantRole, string[]> = {
   ],
 };
 
-/**
- * Get all event types visible to a user based on their roles
- */
+// Get event types visible to a user based on their roles.
 export function getVisibleEventTypes(roles: TenantRole[]): Set<string> {
   const visible = new Set<string>();
   for (const role of roles) {
@@ -79,9 +75,7 @@ export function getVisibleEventTypes(roles: TenantRole[]): Set<string> {
   return visible;
 }
 
-/**
- * Check if a notification event type is relevant to a user's role(s)
- */
+// Check if an event type is relevant to the user's roles.
 export function isEventTypeVisibleToRoles(
   eventType: string,
   roles: TenantRole[],
@@ -90,9 +84,7 @@ export function isEventTypeVisibleToRoles(
   return visible.has(eventType);
 }
 
-/**
- * Get a user-friendly label for a role
- */
+// Friendly label for a role.
 export function getRoleLabel(role: TenantRole): string {
   const labels: Record<TenantRole, string> = {
     admin: "Administrator",

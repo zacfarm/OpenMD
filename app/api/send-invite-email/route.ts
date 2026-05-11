@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     `;
     const textBody = `You have been invited to join ${tenantName} on OpenMD as a ${roleLabel}.\n\nUse this link to create your profile:\n${inviteUrl}\n\nThis link will expire in 48 hours.`;
 
-    // Send email using configured service
+    // Send using the configured email service.
     await sendEmailViaService(inviteEmail, subject, htmlBody, textBody);
 
     return NextResponse.json({
@@ -93,7 +93,7 @@ async function sendEmailViaService(
   } else if (emailService === "aws-ses") {
     return sendViaAwsSes(to, subject, htmlBody, textBody);
   } else {
-    // Default: log to console for development
+    // Default: log to console for development.
     console.log(
       "📧 Email notification (configure EMAIL_SERVICE to send real emails):",
     );
@@ -125,11 +125,11 @@ async function sendViaSendGrid(
   htmlBody: string,
   _textBody: string,
 ) {
-  // Example: Using SendGrid (https://sendgrid.com)
+  // SendGrid example (optional):
   // Install: npm install @sendgrid/mail
-  // Set: SENDGRID_API_KEY=your_key, EMAIL_SERVICE=sendgrid, EMAIL_FROM=noreply@yourapp.com
+  // Env: SENDGRID_API_KEY=your_key, EMAIL_SERVICE=sendgrid, EMAIL_FROM=noreply@yourapp.com
 
-  // Uncomment these lines when you have SendGrid set up:
+  // Uncomment when SendGrid is set up:
   // const sgMail = require('@sendgrid/mail')
   // sgMail.setApiKey(process.env.SENDGRID_API_KEY)
   // await sgMail.send({
@@ -148,12 +148,12 @@ async function sendViaAwsSes(
   htmlBody: string,
   textBody: string,
 ) {
-  // Example: Using AWS SES (https://aws.amazon.com/ses/)
+  // AWS SES example (optional):
   // Install: npm install @aws-sdk/client-ses
-  // Set: EMAIL_SERVICE=aws-ses, EMAIL_FROM=verified-address@yourdomain.com
-  // AWS credentials via environment or IAM role
+  // Env: EMAIL_SERVICE=aws-ses, EMAIL_FROM=verified-address@yourdomain.com
+  // Credentials via environment or IAM role.
 
-  // Uncomment these lines when you have AWS SES set up:
+  // Uncomment when AWS SES is set up:
   // const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses')
   // const sesClient = new SESClient({ region: process.env.AWS_REGION || 'us-east-1' })
   // await sesClient.send(new SendEmailCommand({

@@ -102,7 +102,7 @@ export function NotificationsClient({
     activeFilter: "all",
   });
 
-  // Get all unique roles the user has across tenants
+  // Collect unique roles across tenants.
   const allRoles = new Set<TenantRole>();
   Object.values(rolesByTenant).forEach((roles) => {
     if (Array.isArray(roles)) {
@@ -111,7 +111,7 @@ export function NotificationsClient({
   });
   const userRoles = Array.from(allRoles);
 
-  // Subscribe to real-time inserts for this user
+  // Subscribe to realtime inserts for this user.
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     const channel = supabase
@@ -126,7 +126,7 @@ export function NotificationsClient({
         },
         (payload) => {
           dispatch({ type: "ADD", notification: payload.new as Notification });
-          // Browser notification if permitted
+          // Show a browser notification if allowed.
           if (
             typeof window !== "undefined" &&
             "Notification" in window &&
@@ -167,7 +167,7 @@ export function NotificationsClient({
   }, [state.notifications]);
 
   const filtered = state.notifications.filter((n) => {
-    // First check role-based visibility
+    // Check role-based visibility first.
     const tenantId = n.tenant_id;
     const roleForTenant =
       tenantId && rolesByTenant[tenantId] ? rolesByTenant[tenantId] : userRoles;
@@ -175,7 +175,7 @@ export function NotificationsClient({
       return false;
     }
 
-    // Then apply category filter
+    // Then apply the category filter.
     if (state.activeFilter === "all") return true;
     return (TYPE_GROUP[n.type] ?? n.type) === state.activeFilter;
   });
@@ -204,7 +204,7 @@ export function NotificationsClient({
 
   return (
     <section className="card" style={{ padding: 18 }}>
-      {/* Header */}
+      {/* Header area */}
       <div
         style={{
           display: "flex",
@@ -308,7 +308,7 @@ export function NotificationsClient({
         })}
       </div>
 
-      {/* List */}
+      {/* Notifications list */}
       {filtered.length === 0 ? (
         <div
           style={{

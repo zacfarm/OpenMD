@@ -47,7 +47,7 @@ export async function GET() {
       .select("id,entity_type,slug,label,is_active"),
   ]);
 
-  // Calculate metrics
+  // Counts and rates for the report.
   const totalReports = totalReportsCount ?? 0;
   const openReports = openReportsCount ?? 0;
   const inReviewReports = inReviewReportsCount ?? 0;
@@ -58,7 +58,7 @@ export async function GET() {
   const moderationRate =
     totalReports > 0 ? (moderatedReports / totalReports) * 100 : 0;
 
-  // Calculate report reasons
+  // Count report reasons.
   const reportReasonCounts = new Map<string, number>();
   for (const row of reportAnalyticsRows ?? []) {
     const key = String(row.reason || "Unknown");
@@ -69,13 +69,13 @@ export async function GET() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
-  // Build CSV
+  // Assemble CSV output.
   const lines: string[] = [];
   lines.push("OpenMD Admin Analytics Report");
   lines.push(`Generated: ${new Date().toISOString()}`);
   lines.push("");
 
-  // Key Metrics
+  // Key metrics
   lines.push("KEY METRICS");
   lines.push(`Total Reports,${totalReports}`);
   lines.push(`Open Reports,${openReports}`);
@@ -87,7 +87,7 @@ export async function GET() {
   lines.push(`Moderation Rate,${moderationRate.toFixed(1)}%`);
   lines.push("");
 
-  // Status Distribution
+  // Status distribution
   lines.push("STATUS DISTRIBUTION");
   lines.push("Status,Count");
   lines.push(`Open,${openReports}`);
@@ -96,7 +96,7 @@ export async function GET() {
   lines.push(`Dismissed,${dismissedReports}`);
   lines.push("");
 
-  // Top Report Reasons
+  // Top report reasons
   lines.push("TOP REPORT REASONS");
   lines.push("Reason,Count");
   topReasons.forEach((item) => {
@@ -104,7 +104,7 @@ export async function GET() {
   });
   lines.push("");
 
-  // Tag Coverage
+  // Tag coverage
   const groupedTags = {
     doctor: (tags ?? []).filter((tag) => tag.entity_type === "doctor"),
     practice: (tags ?? []).filter((tag) => tag.entity_type === "practice"),

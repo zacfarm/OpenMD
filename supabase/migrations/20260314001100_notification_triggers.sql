@@ -1,9 +1,6 @@
--- ============================================================
--- Notification Triggers
--- Fires on: booking_requests, marketplace_posts,
---           provider_credentials, credential_status_history,
---           tenant_invites, tenant_memberships, insurance_claims
--- ============================================================
+-- Notification triggers.
+-- Fires on: booking_requests, marketplace_posts, provider_credentials,
+-- credential_status_history, tenant_invites, tenant_memberships, insurance_claims.
 
 alter table public.notifications enable row level security;
 
@@ -18,9 +15,7 @@ create policy notifications_select_own on public.notifications
 create policy notifications_update_own on public.notifications
   for update using (user_id = auth.uid());
 
--- ──────────────────────────────────────────────
 -- Helpers
--- ──────────────────────────────────────────────
 
 -- Insert one notification for a single user
 create or replace function public.insert_notification(
@@ -112,9 +107,7 @@ begin
 end;
 $$;
 
--- ──────────────────────────────────────────────
--- BOOKING REQUESTS — new booking created
--- ──────────────────────────────────────────────
+-- Booking requests: new booking created
 
 create or replace function public.trg_fn_booking_requested()
 returns trigger
@@ -173,9 +166,7 @@ create trigger trg_booking_requested
 after insert on public.booking_requests
 for each row execute function public.trg_fn_booking_requested();
 
--- ──────────────────────────────────────────────
--- BOOKING REQUESTS — status changed
--- ──────────────────────────────────────────────
+-- Booking requests: status changed
 
 create or replace function public.trg_fn_booking_status_changed()
 returns trigger
@@ -249,9 +240,7 @@ create trigger trg_booking_status_changed
 after update on public.booking_requests
 for each row execute function public.trg_fn_booking_status_changed();
 
--- ──────────────────────────────────────────────
--- MARKETPLACE POSTS — post claimed
--- ──────────────────────────────────────────────
+-- Marketplace posts: post claimed
 
 create or replace function public.trg_fn_marketplace_claimed()
 returns trigger
@@ -313,9 +302,7 @@ create trigger trg_marketplace_claimed
 after update on public.marketplace_posts
 for each row execute function public.trg_fn_marketplace_claimed();
 
--- ──────────────────────────────────────────────
--- PROVIDER CREDENTIALS — new credential uploaded
--- ──────────────────────────────────────────────
+-- Provider credentials: new credential uploaded
 
 create or replace function public.trg_fn_credential_uploaded()
 returns trigger
@@ -351,9 +338,7 @@ create trigger trg_credential_uploaded
 after insert on public.provider_credentials
 for each row execute function public.trg_fn_credential_uploaded();
 
--- ──────────────────────────────────────────────
--- CREDENTIAL STATUS HISTORY — credential reviewed
--- ──────────────────────────────────────────────
+-- Credential status history: credential reviewed
 
 create or replace function public.trg_fn_credential_reviewed()
 returns trigger
@@ -402,9 +387,7 @@ create trigger trg_credential_reviewed
 after insert on public.credential_status_history
 for each row execute function public.trg_fn_credential_reviewed();
 
--- ──────────────────────────────────────────────
--- TENANT INVITES — invite accepted
--- ──────────────────────────────────────────────
+-- Tenant invites: invite accepted
 
 create or replace function public.trg_fn_invite_accepted()
 returns trigger
@@ -450,9 +433,7 @@ create trigger trg_invite_accepted
 after update on public.tenant_invites
 for each row execute function public.trg_fn_invite_accepted();
 
--- ──────────────────────────────────────────────
--- TENANT MEMBERSHIPS — new member joined
--- ──────────────────────────────────────────────
+-- Tenant memberships: new member joined
 
 create or replace function public.trg_fn_member_joined()
 returns trigger
@@ -496,9 +477,7 @@ create trigger trg_member_joined
 after insert on public.tenant_memberships
 for each row execute function public.trg_fn_member_joined();
 
--- ──────────────────────────────────────────────
--- INSURANCE CLAIMS — submitted / status changed
--- ──────────────────────────────────────────────
+-- Insurance claims: submitted or status changed
 
 create or replace function public.trg_fn_claim_submitted()
 returns trigger

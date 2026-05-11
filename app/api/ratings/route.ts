@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     return NextResponse.redirect(new URL(referer ?? "/", req.url));
   }
 
-  // Comment is optional. If provided but too short, store rating without comment.
+  // Comment is optional; if it's too short, keep the rating only.
   const comment = commentRaw.length >= 20 ? commentRaw : null;
 
   const supabase = await createSupabaseServerClient();

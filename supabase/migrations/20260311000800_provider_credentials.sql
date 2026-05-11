@@ -1,13 +1,12 @@
--- Provider Credentials & Document Management
--- Allows providers to upload credential documents. Facility admins/credentialing
--- staff can review and approve/deny with a full status-change history.
+-- Provider credentials and document management.
+-- Providers upload docs; reviewers can approve/deny with full history.
 
--- ─── Storage bucket ────────────────────────────────────────────────────────────
+-- Storage bucket
 insert into storage.buckets (id, name, public)
 values ('credentials', 'credentials', false)
 on conflict (id) do nothing;
 
--- Only authenticated users may read objects they own or that belong to their tenant.
+-- Only authenticated users may read their own objects or tenant-owned objects.
 create policy "credentials_upload" on storage.objects
   for insert to authenticated
   with check (bucket_id = 'credentials' and auth.uid()::text = (storage.foldername(name))[1]);
@@ -20,7 +19,7 @@ create policy "credentials_delete_owner" on storage.objects
   for delete to authenticated
   using (bucket_id = 'credentials' and auth.uid()::text = (storage.foldername(name))[1]);
 
--- ─── credential_type enum ─────────────────────────────────────────────────────
+-- Credential status enum
 create type public.credential_status as enum (
   'pending',
   'approved',
@@ -28,7 +27,7 @@ create type public.credential_status as enum (
   'expired'
 );
 
--- ─── provider_credentials table ───────────────────────────────────────────────
+-- provider_credentials table
 create table public.provider_credentials (
   id              uuid primary key default gen_random_uuid(),
   provider_id     uuid not null references public.provider_profiles(id) on delete cascade,
@@ -52,8 +51,8 @@ create trigger trg_credentials_updated_at
   before update on public.provider_credentials
   for each row execute function public.set_updated_at();
 
--- ─── credential_status_history table ─────────────────────────────────────────
--- Full audit trail: every status change is recorded here.
+-- credential_status_history table
+-- Full audit trail of status changes.
 create table public.credential_status_history (
   id              uuid primary key default gen_random_uuid(),
   credential_id   uuid not null references public.provider_credentials(id) on delete cascade,
@@ -66,7 +65,7 @@ create table public.credential_status_history (
 
 create index idx_cred_history_credential on public.credential_status_history (credential_id, created_at desc);
 
--- ─── Trigger: auto-record history on status change ───────────────────────────
+-- Trigger to record status changes
 create or replace function public.record_credential_status_change()
 returns trigger
 language plpgsql
@@ -88,7 +87,7 @@ create trigger trg_credential_status_history
   after update on public.provider_credentials
   for each row execute function public.record_credential_status_change();
 
--- ─── RPC: review_credential (approve / deny) ─────────────────────────────────
+-- RPC: review_credential (approve / deny)
 create or replace function public.review_credential(
   p_credential_id uuid,
   p_status        public.credential_status,
@@ -130,7 +129,7 @@ $$;
 
 grant execute on function public.review_credential(uuid, public.credential_status, text) to authenticated;
 
--- ─── RLS ─────────────────────────────────────────────────────────────────────
+-- RLS
 alter table public.provider_credentials        enable row level security;
 alter table public.credential_status_history   enable row level security;
 

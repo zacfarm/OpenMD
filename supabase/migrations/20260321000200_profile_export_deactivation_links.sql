@@ -1,5 +1,4 @@
--- ============================================================
--- Professional Links
+-- Professional links
 
 
 alter table public.user_profile_settings

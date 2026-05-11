@@ -2,11 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 /**
- * GET /api/cron/credential-expiry
- *
- * Calls notify_expiring_credentials() to insert in-app notifications
- * for credentials expiring in 90/60/30/7 days, escalates 7-day risk
- * to admins, and flags providers missing required credential documents.
+ * Cron endpoint for credential expiry notifications.
+ * Calls notify_expiring_credentials() for 90/60/30/7-day alerts and missing docs.
  */
 export async function GET() {
   const supabase = createClient(

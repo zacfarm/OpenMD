@@ -55,14 +55,14 @@ export default async function CredentialsPage() {
 
   const isReviewer = role === "admin" || role === "facility_manager";
 
-  // Fetch the provider profile for the current user (may be null for admin-only roles)
+  // Fetch the provider profile for this user (admins might not have one).
   const { data: providerProfile } = await supabase
     .from("provider_profiles")
     .select("id")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  // ── Provider view: own credentials ──────────────────────────────────────────
+  // Provider view: show only their own credentials.
   if (!isReviewer && providerProfile) {
     const { data: credentials } = await supabase
       .from("provider_credentials")
@@ -81,7 +81,7 @@ export default async function CredentialsPage() {
     );
   }
 
-  // ── Reviewer view: all providers in tenant (facility-side admin roles only) ──
+  // Reviewer view: all providers in this tenant.
   if (isReviewer) {
     const { data: allCredentials } = await supabase
       .from("provider_credentials")
@@ -196,7 +196,7 @@ export default async function CredentialsPage() {
       return a.providerName.localeCompare(b.providerName);
     });
 
-    // If the reviewer is also a doctor they can upload their own too
+    // If the reviewer is also a provider, show their own uploads too.
     if (providerProfile) {
       const { data: ownCredentials } = await supabase
         .from("provider_credentials")
@@ -233,7 +233,7 @@ export default async function CredentialsPage() {
     );
   }
 
-  // Non-provider, non-review roles cannot access credentials workspace
+  // Non-provider, non-review roles get redirected out of this workspace.
   if (!providerProfile) {
     redirect("/dashboard");
   }

@@ -28,9 +28,7 @@ export async function POST(req: Request) {
     `;
     const textBody = `Contact form message\n\nName: ${name}\nEmail: ${email}\n\n${message}`;
 
-    // Send email using configured service
-    // Configure recipient via the CONTACT_EMAIL_TO environment variable.
-    // Example: CONTACT_EMAIL_TO=support@yourdomain.com
+    // Send via the configured service; recipient comes from CONTACT_EMAIL_TO.
     const recipient = process.env.CONTACT_EMAIL_TO || "inquiryopenmd@gmail.com";
     await sendEmailViaService(recipient, subject, htmlBody, textBody);
 

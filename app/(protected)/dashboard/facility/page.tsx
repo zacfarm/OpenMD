@@ -79,7 +79,7 @@ export default async function FacilityDashboardPage() {
 
   const now = new Date();
 
-  // Weekly utilization trend (last 8 full/partial weeks)
+  // Weekly utilization trend for the last 8 weeks.
   const weeklyPoints: WeeklyPoint[] = [];
   for (let i = 7; i >= 0; i -= 1) {
     const cursor = startOfUtcWeek(now);
@@ -110,7 +110,7 @@ export default async function FacilityDashboardPage() {
     });
   }
 
-  // Monthly cost trend (last 6 months)
+  // Monthly cost trend for the last 6 months.
   const monthlyPoints: MonthlyPoint[] = [];
   for (let i = 5; i >= 0; i -= 1) {
     const m = new Date(

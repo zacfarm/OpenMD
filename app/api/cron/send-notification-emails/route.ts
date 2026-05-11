@@ -3,11 +3,8 @@ import { Resend } from "resend";
 import { createClient } from "@supabase/supabase-js";
 
 /**
- * GET /api/cron/send-notification-emails
- *
- * Queries notifications created in the past hour for users who opted into
- * email delivery (notification_preferences.email = true). Sends one digest
- * email per user.
+ * Cron endpoint for notification email digests.
+ * Looks back an hour (or ?minutes=) and sends one digest per user.
  */
 export async function GET(req: Request) {
   // Optional debug override: /api/cron/send-notification-emails?minutes=1440
@@ -24,6 +21,7 @@ export async function GET(req: Request) {
   );
   const warnings = getEmailConfigWarnings();
 
+  // Look back window for pending notifications.
   const since = new Date(
     Date.now() - lookbackMinutes * 60 * 1000,
   ).toISOString();
@@ -49,7 +47,7 @@ export async function GET(req: Request) {
     });
   }
 
-  // Group by user email so each user gets one digest
+  // Group by user email so each user gets one digest.
   type Row = {
     notification_id: string;
     user_email: string;
@@ -146,6 +144,7 @@ function getEmailConfigWarnings(): string[] {
   const service = (process.env.EMAIL_SERVICE ?? "console").toLowerCase();
   const emailFrom = process.env.EMAIL_FROM;
 
+  // Surface config issues without failing the cron.
   if (service === "console") {
     warnings.push(
       "EMAIL_SERVICE is set to console; emails are logged but not delivered.",

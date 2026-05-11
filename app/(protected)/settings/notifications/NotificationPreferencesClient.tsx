@@ -82,7 +82,7 @@ export function NotificationPreferencesClient({
   const [prefs, setPrefs] = useState<PrefsMap>(initialPrefs);
   const [saving, setSaving] = useState<string | null>(null);
 
-  // Filter event types based on user's roles
+  // Filter event types by role.
   const visibleEventTypes = EVENT_TYPES.filter((ev) =>
     isEventTypeVisibleToRoles(ev.key, userRoles),
   );

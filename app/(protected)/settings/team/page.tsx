@@ -58,8 +58,7 @@ async function createInvite(formData: FormData) {
     invite_role: role,
   });
 
-  // Backward compatibility: if DB enum is still the legacy role set,
-  // retry with legacy role names where possible.
+  // If the DB still has legacy role enums, retry with the old names.
   if (error?.message.includes("invalid input value for enum tenant_role")) {
     const legacyRole = toLegacyTenantRole(role);
 

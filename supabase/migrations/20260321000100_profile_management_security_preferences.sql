@@ -1,10 +1,5 @@
--- ============================================================
--- Profile Management Expansion
--- Adds:
--- - user_profile_settings (contact, routing, privacy, role-aware fields)
--- - user_security_audit_logs (self-visible security action history)
--- - profile-avatars storage bucket and object policies
--- ============================================================
+-- Profile management expansion.
+-- Adds user_profile_settings, user_security_audit_logs, and profile-avatars bucket/policies.
 
 create table if not exists public.user_profile_settings (
   user_id uuid primary key references auth.users(id) on delete cascade,
