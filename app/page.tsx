@@ -181,7 +181,7 @@ export default async function Home({
               Sign In
             </Link>
             <Link className="btn btn-primary" href="/signup">
-              Create Tenenat space
+              Create Tenant Space
             </Link>
           </div>
         </div>
